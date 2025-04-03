@@ -1,0 +1,28 @@
+# FastAPI and web server
+fastapi>=0.95.0
+uvicorn[standard]>=0.22.0
+starlette>=0.27.0
+jinja2>=3.1.2
+
+# Database
+aiosqlite>=0.18.0
+alembic>=1.10.4  # For database migrations
+
+# Async support
+asyncio>=3.4.3
+
+# Hardware interfaces (Raspberry Pi specific)
+smbus2>=0.5.0      # For MPR121 touch sensor
+pi5neo>=1.0.5      # For LED strip control
+RPi.GPIO>=0.7.1    # GPIO access
+
+# Utilities
+python-dateutil>=2.8.2
+pydantic>=1.10.7
+python-dotenv>=1.0.0
+rich>=13.3.5  # Better terminal output
+
+# Testing and development (optional)
+pytest>=7.3.1
+pytest-asyncio>=0.21.0
+requests>=2.29.0

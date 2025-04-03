@@ -1,0 +1,19 @@
+[Unit]
+Description=Touch Companion Display 1 (Main Page)
+After=touch-companion.service
+Requires=touch-companion.service
+
+[Service]
+User=pi
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+ExecStartPre=/bin/sleep 60
+ExecStart=/usr/bin/chromium --kiosk --incognito --noerrdialogs --disable-translate --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --disk-cache-dir=/dev/null --app=http://localhost:8000/
+Restart=on-failure
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=touch-display1
+
+[Install]
+WantedBy=graphical.target

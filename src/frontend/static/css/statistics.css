@@ -1,0 +1,231 @@
+/* Statistics Page Styles for Touch Companion */
+
+/* Base styles */
+:root {
+    /* Colors */
+  --primary-color: #3b82f6;
+  --secondary-color: #10b981;
+  --text-color: #1f2937;
+  --background-color: #f3f4f6;
+  --card-background: #ffffff;
+  --card-shadow: rgba(0, 0, 0, 0.1);
+  --accent-color: #8b5cf6;
+    /* Emotional state colors */
+  --glad-color: #fbbf24;
+  --sad-color: #3b82f6;
+    /* Typography */
+  --heading-font: 'Roboto', 'Arial', sans-serif;
+  --body-font: 'Open Sans', 'Arial', sans-serif;
+    /* Spacing */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+    /* Animation */
+  --transition-speed: 300ms;
+}
+
+/* Global reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--body-font);
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: background-color var(--transition-speed) ease;
+}
+
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Typography */
+h1, h2, h3 {
+  font-family: var(--heading-font);
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
+}
+
+h1 {
+  font-size: 2.5rem;
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+h2 {
+  font-size: 1.5rem;
+  color: var(--text-color);
+}
+
+/* Header */
+header {
+  margin-bottom: var(--spacing-xl);
+}
+
+/* Emotional state indicator */
+.emotional-state {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--spacing-md);
+}
+
+.state-indicator {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm);
+  border-radius: 1rem;
+  background-color: var(--card-background);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.state-circle {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  margin-right: var(--spacing-sm);
+  transition: background-color var(--transition-speed) ease;
+}
+
+.state-circle.glad {
+  background-color: var(--glad-color);
+  box-shadow: 0 0 10px var(--glad-color);
+}
+
+.state-circle.sad {
+  background-color: var(--sad-color);
+  box-shadow: 0 0 10px var(--sad-color);
+}
+
+.state-label {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* Main content */
+main {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+/* Stats cards */
+.stats-card {
+  background-color: var(--card-background);
+  border-radius: 1rem;
+  padding: var(--spacing-lg);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+}
+
+.stats-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+}
+
+.stats-card h2 {
+  margin-bottom: var(--spacing-md);
+  font-size: 1.25rem;
+}
+
+.count {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: var(--spacing-md) 0;
+  transition: all var(--transition-speed) ease;
+}
+
+/* Emotional stats section */
+.emotional-stats {
+  background-color: var(--card-background);
+  border-radius: 1rem;
+  padding: var(--spacing-lg);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.emotional-stats h2 {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.state-times {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
+}
+
+.state-time {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 48%;
+  padding: var(--spacing-sm);
+  border-radius: 0.5rem;
+  background-color: var(--background-color);
+}
+
+.time {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* State bar */
+.state-bar {
+  height: 2rem;
+  background-color: var(--background-color);
+  border-radius: 1rem;
+  overflow: hidden;
+  display: flex;
+  transition: all var(--transition-speed) ease;
+}
+
+.state-bar-glad {
+  height: 100%;
+  background-color: var(--glad-color);
+  transition: width var(--transition-speed) ease;
+}
+
+.state-bar-sad {
+  height: 100%;
+  background-color: var(--sad-color);
+  transition: width var(--transition-speed) ease;
+}
+
+/* Footer */
+footer {
+  margin-top: var(--spacing-xl);
+  text-align: center;
+  padding: var(--spacing-md) 0;
+}
+
+.last-update {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
