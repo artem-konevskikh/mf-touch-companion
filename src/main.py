@@ -124,6 +124,9 @@ class TouchCompanionApp:
                 logger.debug(
                     f"Touch event: sensor={event.sensor_id}, duration={event.duration:.3f}s"
                 )
+                # Notify all connected web clients about the new touch event
+                from src.webapp.routes.api import notify_touch_event
+                notify_touch_event()
 
             # Initialize touch sensor service
             logger.info("Initializing touch sensor service")

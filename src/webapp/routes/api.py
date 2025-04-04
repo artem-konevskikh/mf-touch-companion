@@ -87,31 +87,76 @@ async def get_statistics(statistics: TouchStatistics = Depends(get_touch_statist
 async def sse_statistics(request: Request):
     """Server-sent events for statistics updates."""
 
+    # Create a queue for touch events
+    queue: asyncio.Queue = asyncio.Queue()
+    
+    # Register this queue in a global registry
+    # This is a simple way to broadcast events to all connected clients
+    if not hasattr(sse_statistics, "active_connections"):
+        sse_statistics.active_connections = set()
+    
+    # Add this connection to the set
+    sse_statistics.active_connections.add(queue)
+    
     async def event_generator():
         """Generate SSE events."""
-        while True:
-            # If client disconnects, stop sending events
-            if await request.is_disconnected():
-                break
-
-            try:
-                # Get fresh statistics for each update
-                stats = get_touch_statistics(
-                    get_database(), get_emotional_state_engine()
-                )
-
-                # Format as SSE
-                yield f"data: {stats.json()}\n\n"
-
-            except Exception as e:
-                logger.error(f"Error generating SSE: {e}")
-                yield f"data: {ApiResponse(success=False, error=str(e)).json()}\n\n"
-
-            # Wait before sending next update
-            await asyncio.sleep(update_interval)
+        try:
+            # Send initial statistics
+            stats = get_touch_statistics(
+                get_database(), get_emotional_state_engine()
+            )
+            yield f"data: {stats.json()}\n\n"
+            
+            while True:
+                # If client disconnects, stop sending events
+                if await request.is_disconnected():
+                    break
+                    
+                try:
+                    # Either wait for a new touch event or timeout after update_interval
+                    try:
+                        # Wait for a touch event (or timeout)
+                        await asyncio.wait_for(queue.get(), timeout=update_interval)
+                        
+                        # Get fresh statistics after a touch event
+                        stats = get_touch_statistics(
+                            get_database(), get_emotional_state_engine()
+                        )
+                        
+                        # Format as SSE
+                        yield f"data: {stats.json()}\n\n"
+                        
+                    except asyncio.TimeoutError:
+                        # Timeout occurred, send periodic update
+                        stats = get_touch_statistics(
+                            get_database(), get_emotional_state_engine()
+                        )
+                        yield f"data: {stats.json()}\n\n"
+                        
+                except Exception as e:
+                    logger.error(f"Error generating SSE: {e}")
+                    yield f"data: {ApiResponse(success=False, error=str(e)).json()}\n\n"
+                    # Wait a bit before trying again
+                    await asyncio.sleep(1)
+                    
+        finally:
+            # Remove this connection when done
+            if hasattr(sse_statistics, "active_connections"):
+                sse_statistics.active_connections.remove(queue)
 
     return EventSourceResponse(event_generator())
 
+
+# Function to notify all SSE clients about new touch events
+def notify_touch_event():
+    """Notify all connected SSE clients about a new touch event."""
+    if hasattr(sse_statistics, "active_connections"):
+        for queue in sse_statistics.active_connections:
+            # Put a notification in each client's queue
+            try:
+                queue.put_nowait(None)  # None is just a signal, the actual data will be fetched fresh
+            except Exception as e:
+                logger.error(f"Error notifying client: {e}")
 
 @router.post("/state/{state}", response_model=ApiResponse)
 async def set_emotional_state(
