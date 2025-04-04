@@ -119,6 +119,12 @@ async def websocket_statistics(websocket: WebSocket):
     """WebSocket endpoint for statistics updates."""
     await manager.connect(websocket)
     
+    # Flag to track connection state
+    is_connected = True
+    
+    # Tasks to clean up
+    tasks = []
+    
     try:
         # Send initial statistics
         stats = get_touch_statistics(
@@ -130,21 +136,39 @@ async def websocket_statistics(websocket: WebSocket):
         last_update_time = time.time()
         min_update_interval = 0.1  # Minimum time between updates (100ms)
         
-        while True:
+        while is_connected:
             try:
-                # Wait for the update interval, a touch event, or a message from the client
+                # Create tasks for each possible event
                 receive_task = asyncio.create_task(websocket.receive_text())
                 update_task = asyncio.create_task(asyncio.sleep(update_interval))
                 event_task = asyncio.create_task(websocket_event_queue.get())
                 
+                # Keep track of tasks for cleanup
+                tasks = [receive_task, update_task, event_task]
+                
+                # Wait for any task to complete
                 done, pending = await asyncio.wait(
-                    [receive_task, update_task, event_task],
+                    tasks,
                     return_when=asyncio.FIRST_COMPLETED
                 )
                 
-                # Cancel the pending tasks
+                # Cancel pending tasks properly
                 for task in pending:
                     task.cancel()
+                    try:
+                        # Wait for the task to be cancelled
+                        await task
+                    except asyncio.CancelledError:
+                        pass
+                    except Exception as e:
+                        logger.debug(f"Error cancelling task: {e}")
+                
+                # Clear tasks list
+                tasks = []
+                
+                # Check if we're still connected
+                if not is_connected:
+                    break
                 
                 current_time = time.time()
                 time_since_last_update = current_time - last_update_time
@@ -159,11 +183,16 @@ async def websocket_statistics(websocket: WebSocket):
                         # Handle ping message
                         if data.get('type') == 'ping':
                             await websocket.send_text(json.dumps({'type': 'pong'}))
+                    except WebSocketDisconnect:
+                        # Client disconnected
+                        logger.info("WebSocket client disconnected during receive")
+                        is_connected = False
+                        break
                     except Exception as e:
                         logger.error(f"Error processing client message: {e}")
                 
                 # Handle touch event notification
-                if event_task in done:
+                if event_task in done and is_connected:
                     # Only update if enough time has passed since the last update
                     if time_since_last_update >= min_update_interval:
                         should_update = True
@@ -176,27 +205,53 @@ async def websocket_statistics(websocket: WebSocket):
                 if update_task in done:
                     should_update = True
                 
-                # Send update if needed
-                if should_update:
-                    # Get fresh statistics
-                    stats = get_touch_statistics(
-                        get_database(), get_emotional_state_engine()
-                    )
-                    
-                    # Send the update
-                    await websocket.send_text(ApiResponse(success=True, data=stats).json())
-                    last_update_time = current_time
+                # Send update if needed and still connected
+                if should_update and is_connected:
+                    try:
+                        # Get fresh statistics
+                        stats = get_touch_statistics(
+                            get_database(), get_emotional_state_engine()
+                        )
+                        
+                        # Send the update
+                        await websocket.send_text(ApiResponse(success=True, data=stats).json())
+                        last_update_time = current_time
+                    except WebSocketDisconnect:
+                        logger.info("WebSocket client disconnected during send")
+                        is_connected = False
+                        break
+                    except Exception as e:
+                        logger.error(f"Error sending update: {e}")
                 
+            except WebSocketDisconnect:
+                logger.info("WebSocket client disconnected in main loop")
+                is_connected = False
+                break
+            except asyncio.CancelledError:
+                logger.info("WebSocket tasks cancelled")
+                is_connected = False
+                break
             except Exception as e:
                 logger.error(f"Error in WebSocket communication: {e}")
-                await websocket.send_text(ApiResponse(success=False, error=str(e)).json())
-                await asyncio.sleep(1)  # Wait a bit before trying again
+                try:
+                    if is_connected:
+                        await websocket.send_text(ApiResponse(success=False, error=str(e)).json())
+                        await asyncio.sleep(1)  # Wait a bit before trying again
+                except Exception:
+                    # If we can't send the error, the connection is probably closed
+                    is_connected = False
+                    break
                 
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected")
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
     finally:
+        # Cancel any remaining tasks
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        
         # Remove this connection when done
         manager.disconnect(websocket)
 
