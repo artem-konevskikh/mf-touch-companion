@@ -122,6 +122,10 @@ class Database:
             connection.execute("PRAGMA foreign_keys = ON")
             # For better performance
             connection.execute("PRAGMA journal_mode = WAL")
+            # Set cache size (in pages, default page size is 4KB)
+            connection.execute("PRAGMA cache_size = -2000")  # Use ~8MB of memory for cache
+            # Optimize for better concurrency
+            connection.execute("PRAGMA busy_timeout = 5000")  # 5 second timeout
             # Return rows as dictionaries
             connection.row_factory = sqlite3.Row
 
@@ -140,12 +144,17 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     sensor_id INTEGER NOT NULL,
                     timestamp REAL NOT NULL,
-                    duration REAL NOT NULL,
-                    
-                    -- Indexes
-                    INDEX idx_sensor_timestamp (sensor_id, timestamp)
+                    duration REAL NOT NULL
                 )
                 """
+            )
+            
+            # Create indexes for touch_events table
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_sensor_timestamp ON touch_events (sensor_id, timestamp)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_timestamp ON touch_events (timestamp)"
             )
 
             # Create emotional_states table
@@ -154,12 +163,14 @@ class Database:
                 CREATE TABLE IF NOT EXISTS emotional_states (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     state TEXT NOT NULL CHECK(state IN ('sad', 'glad')),
-                    timestamp REAL NOT NULL,
-                    
-                    -- Index
-                    INDEX idx_timestamp (timestamp)
+                    timestamp REAL NOT NULL
                 )
                 """
+            )
+            
+            # Create index for emotional_states table
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_emotional_timestamp ON emotional_states (timestamp)"
             )
 
             # Create daily_statistics table for pre-computed statistics
@@ -251,11 +262,22 @@ class Database:
         if count > self.max_events:
             # Delete oldest events, keeping max_events
             delete_count = count - self.max_events
+            # More efficient deletion using direct timestamp comparison
             cursor.execute(
-                "DELETE FROM touch_events WHERE id IN (SELECT id FROM touch_events ORDER BY timestamp ASC LIMIT ?)",
+                """
+                DELETE FROM touch_events 
+                WHERE timestamp <= (
+                    SELECT timestamp FROM touch_events 
+                    ORDER BY timestamp ASC 
+                    LIMIT 1 OFFSET ?
+                )
+                """,
                 (delete_count,),
             )
             conn.commit()
+            
+            # Invalidate all caches after bulk deletion
+            self.cache.invalidate_all()
 
     def get_total_touch_count(self) -> int:
         """Get the total number of touch events.
