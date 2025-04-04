@@ -52,6 +52,13 @@ class DashboardController {
         this.updateInterval = 1000; // Minimum 1 second between updates
         this.reconnectDelay = 5000; // 5 seconds delay for reconnection attempts
         this.initialLoadRetryDelay = 3000; // 3 seconds delay for initial load retries
+        this.maxReconnectAttempts = 5; // Maximum number of immediate reconnection attempts
+        this.reconnectAttempts = 0; // Current number of reconnection attempts
+        this.reconnectBackoffMultiplier = 1.5; // Backoff multiplier for reconnection attempts
+        this.pingInterval = 30000; // Send ping every 30 seconds
+        this.pingTimeoutId = null; // ID for the ping interval timer
+        this.pongTimeoutId = null; // ID for the pong timeout timer
+        this.pongTimeout = 10000; // Wait 10 seconds for pong response
     }
 
     // Initialize the dashboard
@@ -110,6 +117,8 @@ class DashboardController {
     connectWebSocket() {
         if (this.socket) {
             this.socket.close();
+            // Clear any existing timers
+            this.clearPingPongTimers();
         }
 
         // Determine the correct WebSocket URL based on the current page URL
@@ -120,10 +129,28 @@ class DashboardController {
 
         this.socket.onopen = () => {
             console.log('WebSocket connection established');
+            // Reset reconnection attempts on successful connection
+            this.reconnectAttempts = 0;
+            this.reconnectDelay = 5000; // Reset to initial delay
+            
+            // Start ping-pong mechanism
+            this.startPingPong();
         };
 
         this.socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
+            
+            // Check if this is a pong response
+            if (data.type === 'pong') {
+                console.log('Received pong from server');
+                // Clear the pong timeout since we got a response
+                if (this.pongTimeoutId) {
+                    clearTimeout(this.pongTimeoutId);
+                    this.pongTimeoutId = null;
+                }
+                return;
+            }
+            
             if (data.success) {
                 this.updateMetrics(data.data);
             } else {
@@ -131,14 +158,34 @@ class DashboardController {
             }
         };
 
-        this.socket.onclose = () => {
-            console.log(`WebSocket connection closed. Reconnecting in ${this.reconnectDelay/1000} seconds...`);
+        this.socket.onclose = (event) => {
+            // Check if the close was clean (normal closure)
+            const wasClean = event.wasClean;
+            console.log(`WebSocket connection closed ${wasClean ? 'cleanly' : 'unexpectedly'}. Code: ${event.code}`);
+            
+            // If we've reached max attempts, switch to SSE
+            if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+                console.log('Maximum WebSocket reconnection attempts reached. Switching to SSE.');
+                this.connectEventSource();
+                return;
+            }
+            
+            // Increase reconnection attempts
+            this.reconnectAttempts++;
+            
+            // Apply exponential backoff for reconnection delay
+            if (!wasClean) {
+                this.reconnectDelay = Math.min(30000, this.reconnectDelay * this.reconnectBackoffMultiplier);
+            }
+            
+            console.log(`Reconnecting in ${this.reconnectDelay/1000} seconds... (Attempt ${this.reconnectAttempts})`);
             setTimeout(() => this.connectWebSocket(), this.reconnectDelay);
         };
 
         this.socket.onerror = (error) => {
             console.error('WebSocket error:', error);
-            this.socket.close();
+            // Don't close the socket here, let the onclose handler manage reconnection
+            // The socket will automatically close after an error
         };
     }
 
@@ -164,6 +211,10 @@ class DashboardController {
         this.evtSource.onerror = () => {
             console.error(`EventSource failed. Reconnecting in ${this.reconnectDelay/1000} seconds...`);
             this.evtSource.close();
+            
+            // Apply exponential backoff for reconnection delay
+            this.reconnectDelay = Math.min(30000, this.reconnectDelay * this.reconnectBackoffMultiplier);
+            
             setTimeout(() => this.connectEventSource(), this.reconnectDelay);
         };
     }
@@ -194,6 +245,52 @@ class DashboardController {
             console.error('Failed to load initial data:', error);
             setTimeout(() => this.loadInitialData(), this.initialLoadRetryDelay);
         }
+    }
+
+    // Clear ping-pong timers
+    clearPingPongTimers() {
+        if (this.pingTimeoutId) {
+            clearInterval(this.pingTimeoutId);
+            this.pingTimeoutId = null;
+        }
+        if (this.pongTimeoutId) {
+            clearTimeout(this.pongTimeoutId);
+            this.pongTimeoutId = null;
+        }
+    }
+    
+    // Start ping-pong mechanism to detect connection issues
+    startPingPong() {
+        // Clear any existing timers
+        this.clearPingPongTimers();
+        
+        // Set up ping interval
+        this.pingTimeoutId = setInterval(() => {
+            if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                // Send ping message
+                console.log('Sending ping to server');
+                try {
+                    this.socket.send(JSON.stringify({ type: 'ping' }));
+                    
+                    // Set up pong timeout - if we don't get a response in time, consider the connection dead
+                    this.pongTimeoutId = setTimeout(() => {
+                        console.error('Pong timeout - no response from server');
+                        // Connection is probably dead, close it and reconnect
+                        this.clearPingPongTimers();
+                        if (this.socket) {
+                            this.socket.close();
+                        }
+                    }, this.pongTimeout);
+                } catch (error) {
+                    console.error('Error sending ping:', error);
+                    // If we can't send a ping, the connection is probably dead
+                    this.clearPingPongTimers();
+                    if (this.socket) {
+                        this.socket.close();
+                    }
+                }
+            }
+        }, this.pingInterval);
     }
 }
 

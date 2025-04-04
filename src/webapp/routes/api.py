@@ -14,6 +14,8 @@ from src.database import Database
 from src.emotional_state_engine import EmotionalStateEngine, EmotionalStateType
 from src.webapp.models import ApiResponse, TouchStatistics
 
+import json
+
 router = APIRouter(prefix="/api")
 
 # Logger
@@ -123,16 +125,41 @@ async def websocket_statistics(websocket: WebSocket):
         # Keep the connection alive and send periodic updates
         while True:
             try:
-                # Wait for the update interval before sending the next update
-                await asyncio.sleep(update_interval)
+                # Wait for the update interval or for a message from the client
+                # Use wait_for with a timeout to handle both cases
+                receive_task = asyncio.create_task(websocket.receive_text())
+                update_task = asyncio.create_task(asyncio.sleep(update_interval))
                 
-                # Get fresh statistics
-                stats = get_touch_statistics(
-                    get_database(), get_emotional_state_engine()
+                done, pending = await asyncio.wait(
+                    [receive_task, update_task],
+                    return_when=asyncio.FIRST_COMPLETED
                 )
                 
-                # Send the update
-                await websocket.send_text(ApiResponse(success=True, data=stats).json())
+                # Cancel the pending task
+                for task in pending:
+                    task.cancel()
+                
+                # Handle client message (ping)
+                if receive_task in done:
+                    try:
+                        message = receive_task.result()
+                        data = json.loads(message)
+                        
+                        # Handle ping message
+                        if data.get('type') == 'ping':
+                            await websocket.send_text(json.dumps({'type': 'pong'}))
+                    except Exception as e:
+                        logger.error(f"Error processing client message: {e}")
+                
+                # Send periodic update
+                if update_task in done:
+                    # Get fresh statistics
+                    stats = get_touch_statistics(
+                        get_database(), get_emotional_state_engine()
+                    )
+                    
+                    # Send the update
+                    await websocket.send_text(ApiResponse(success=True, data=stats).json())
                 
             except Exception as e:
                 logger.error(f"Error in WebSocket communication: {e}")
