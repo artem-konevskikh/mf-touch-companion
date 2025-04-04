@@ -1,0 +1,15 @@
+-r requirements-base.txt
+
+# Testing
+pytest
+pytest-asyncio
+pytest-mock
+
+# Type checking
+mypy
+types-requests
+
+# Development tools
+black
+isort
+flake8

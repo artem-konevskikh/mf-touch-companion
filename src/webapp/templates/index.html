@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сенсорный Компаньон</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Roboto+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Сенсорный Компаньон</h1>
+        </div>
+
+        <div class="dashboard">
+            <div class="metrics">
+                <div class="metric-section">
+                    <div class="metric-title">Всего прикосновений</div>
+                    <div class="metric-value" id="total-count">0</div>
+                </div>
+
+                <div class="metric-section">
+                    <div class="metric-title">За последний час</div>
+                    <div class="metric-value" id="hour-count">0</div>
+                </div>
+
+                <div class="metric-section">
+                    <div class="metric-title">Сегодня</div>
+                    <div class="metric-value medium" id="today-count">0</div>
+                </div>
+
+                <div class="metric-section">
+                    <div class="metric-title">Средняя длительность</div>
+                    <div class="metric-value medium" id="avg-duration">0 сек</div>
+                </div>
+            </div>
+
+            <div class="emotional-state">
+                <div class="state-title">Эмоциональное состояние</div>
+                <div class="state-emoji" id="state-emoji">(︶︹︶)</div>
+
+                <div class="state-info">
+                    <div class="state-metric">
+                        <div class="metric-title">Время в состоянии "грустный"</div>
+                        <div class="metric-value small" id="sad-time">0 мин</div>
+                    </div>
+
+                    <div class="state-metric">
+                        <div class="metric-title">Время в состоянии "рад"</div>
+                        <div class="metric-value small" id="glad-time">0 мин</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div id="last-update">Последнее обновление: только что</div>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,16 @@
+[Unit]
+Description=Touch Sensor Companion Device
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/touch-companion
+ExecStart=/usr/bin/python3 -m src.main
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
