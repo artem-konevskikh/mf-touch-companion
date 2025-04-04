@@ -439,8 +439,28 @@ def notify_touch_event():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
     
-    # Schedule the async notification
-    asyncio.run_coroutine_threadsafe(notify_touch_event_async(), loop)
+    # Check if the loop is running and not closing
+    if loop.is_running() and not loop.is_closed():
+        try:
+            # Schedule the async notification and store the future
+            future = asyncio.run_coroutine_threadsafe(notify_touch_event_async(), loop)
+            
+            # Add a done callback to handle any exceptions
+            def handle_future_result(fut):
+                try:
+                    fut.result()  # This will raise any exceptions that occurred
+                except asyncio.CancelledError:
+                    # Coroutine was cancelled, which is expected during shutdown
+                    pass
+                except Exception as e:
+                    logger.error(f"Error in notify_touch_event_async: {e}")
+            
+            future.add_done_callback(handle_future_result)
+        except RuntimeError:
+            # The event loop might be closing
+            logger.debug("Could not schedule notification, event loop might be closing")
+    else:
+        logger.debug("Event loop is not running or is closed, skipping notification")
 
 @router.post("/state/{state}", response_model=ApiResponse)
 async def set_emotional_state(
