@@ -44,7 +44,7 @@ class MPR121Sensor:
 
         # Touch tracking variables
         self.current_touches = [False] * 12  # Current touch status
-        self.touch_start_times = [0] * 12  # Start time for each touch
+        self.touch_start_times = [0.] * 12  # Start time for each touch
 
     def initialize(self):
         """Initialize the MPR121 sensor."""

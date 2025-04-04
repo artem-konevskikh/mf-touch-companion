@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, Set, Callable
 
 # Import database module
-from modules.database import db
+from src.modules.database import db
 
 # Configure logging
 logging.basicConfig(
