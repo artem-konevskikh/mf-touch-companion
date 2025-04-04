@@ -4,8 +4,6 @@ Emotional State Engine for touch sensor companion device.
 This module manages the emotional state of the device and controls the LED strip.
 """
 
-from __future__ import annotations
-
 import logging
 import threading
 import time

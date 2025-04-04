@@ -4,8 +4,6 @@ Main FastAPI application for the touch sensor companion device.
 This module provides the FastAPI application setup and initialization.
 """
 
-from __future__ import annotations
-
 import logging
 from pathlib import Path
 from typing import Union

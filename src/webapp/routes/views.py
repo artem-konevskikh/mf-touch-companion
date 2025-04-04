@@ -10,7 +10,7 @@ from pathlib import Path
 router = APIRouter()
 
 # Templates will be set during app initialization
-templates = None
+templates: Jinja2Templates | None = None
 
 
 def get_templates():

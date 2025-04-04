@@ -4,8 +4,6 @@ Core Sensor Module for touch sensor companion device.
 This module interfaces with the MPR121 touch sensor and processes touch events.
 """
 
-from __future__ import annotations
-
 import logging
 import time
 import threading

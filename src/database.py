@@ -5,8 +5,6 @@ This module provides a SQLite database interface for storing and retrieving
 touch event data, as well as calculating statistics.
 """
 
-from __future__ import annotations
-
 import datetime
 import sqlite3
 import time

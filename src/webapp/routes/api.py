@@ -20,8 +20,8 @@ router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
 
 # Global references to services - will be set during app initialization
-database = None
-emotional_state_engine = None
+database: Database | None = None
+emotional_state_engine: EmotionalStateEngine | None = None
 update_interval = 5.0  # Default update interval in seconds
 
 

@@ -4,8 +4,6 @@ Main application module for touch sensor companion device.
 This module integrates all components of the application.
 """
 
-from __future__ import annotations
-
 import argparse
 import logging
 import signal
@@ -37,9 +35,9 @@ class TouchCompanionApp:
     def __init__(
         self,
         data_dir: Path = Path.home() / ".touch_companion",
-        led_device: str = "/dev/pi5neo0",
+        led_device: str = "/dev/spidev0.0",
         led_count: int = 16,
-        led_frequency: int = 800000,
+        led_frequency: int = 800,
         i2c_address: int = 0x5A,
         i2c_bus: int = 1,
         host: str = "0.0.0.0",
@@ -83,12 +81,11 @@ class TouchCompanionApp:
 
         logger.info("Touch companion application initialized")
 
-    def _handle_signal(self, sig: int, frame: Any) -> None:
+    def _handle_signal(self, sig: int, _: Any) -> None:
         """Handle termination signals.
 
         Args:
             sig: Signal number
-            frame: Current stack frame
         """
         logger.info(f"Received signal {sig}, shutting down")
         self.stop()
