@@ -31,13 +31,18 @@ update_interval = 1.0  # Default update interval in seconds
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
+        # Dictionary to store last sent statistics for each connection
+        self.last_stats: Dict[WebSocket, TouchStatistics] = {}
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
+        self.last_stats[websocket] = None
 
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
+        if websocket in self.last_stats:
+            del self.last_stats[websocket]
 
     async def broadcast(self, message: str):
         for connection in self.active_connections:
@@ -45,6 +50,59 @@ class ConnectionManager:
                 await connection.send_text(message)
             except Exception as e:
                 logger.error(f"Error sending message to WebSocket: {e}")
+                
+    async def broadcast_stats(self, stats: TouchStatistics):
+        """Broadcast statistics to all connections only if they changed for each connection.
+        
+        Args:
+            stats: The current statistics
+        """
+        for connection in self.active_connections:
+            await self.send_stats_if_changed(connection, stats)
+                
+    async def send_stats_if_changed(self, connection: WebSocket, stats: TouchStatistics) -> bool:
+        """Send statistics to a connection only if they have changed.
+        
+        Args:
+            connection: The WebSocket connection
+            stats: The current statistics
+            
+        Returns:
+            bool: True if statistics were sent, False otherwise
+        """
+        last_stats = self.last_stats.get(connection)
+        
+        # If no previous stats or stats have changed, send update
+        if last_stats is None or self._stats_changed(last_stats, stats):
+            try:
+                await connection.send_text(ApiResponse(success=True, data=stats).json())
+                self.last_stats[connection] = stats
+                return True
+            except Exception as e:
+                logger.error(f"Error sending update: {e}")
+        
+        return False
+    
+    def _stats_changed(self, old_stats: TouchStatistics, new_stats: TouchStatistics) -> bool:
+        """Check if statistics have changed significantly.
+        
+        Args:
+            old_stats: Previous statistics
+            new_stats: Current statistics
+            
+        Returns:
+            bool: True if statistics have changed, False otherwise
+        """
+        # Compare all relevant fields except last_update
+        return (
+            old_stats.total_count != new_stats.total_count or
+            old_stats.hour_count != new_stats.hour_count or
+            old_stats.today_count != new_stats.today_count or
+            abs(old_stats.avg_duration - new_stats.avg_duration) > 0.001 or
+            old_stats.emotional_state != new_stats.emotional_state or
+            old_stats.emotional_state_emoji != new_stats.emotional_state_emoji or
+            old_stats.emotional_state_time != new_stats.emotional_state_time
+        )
 
 
 # Create a connection manager instance
@@ -112,7 +170,7 @@ async def get_statistics(statistics: TouchStatistics = Depends(get_touch_statist
 
 # Event queue for WebSocket notifications
 # This will be used to notify WebSocket clients about touch events
-websocket_event_queue = asyncio.Queue()
+websocket_event_queue: asyncio.Queue[None] = asyncio.Queue()
 
 @router.websocket("/ws/statistics")
 async def websocket_statistics(websocket: WebSocket):
@@ -130,7 +188,9 @@ async def websocket_statistics(websocket: WebSocket):
         stats = get_touch_statistics(
             get_database(), get_emotional_state_engine()
         )
+        # Initial statistics are always sent
         await websocket.send_text(ApiResponse(success=True, data=stats).json())
+        manager.last_stats[websocket] = stats
         
         # Keep the connection alive and send periodic updates
         last_update_time = time.time()
@@ -213,9 +273,9 @@ async def websocket_statistics(websocket: WebSocket):
                             get_database(), get_emotional_state_engine()
                         )
                         
-                        # Send the update
-                        await websocket.send_text(ApiResponse(success=True, data=stats).json())
-                        last_update_time = current_time
+                        # Only send update if statistics have changed
+                        if await manager.send_stats_if_changed(websocket, stats):
+                            last_update_time = current_time
                     except WebSocketDisconnect:
                         logger.info("WebSocket client disconnected during send")
                         is_connected = False
@@ -274,12 +334,16 @@ async def sse_statistics(request: Request):
     
     async def event_generator():
         """Generate SSE events."""
+        # Keep track of last sent statistics for this connection
+        last_stats = None
+        
         try:
             # Send initial statistics
             stats = get_touch_statistics(
                 get_database(), get_emotional_state_engine()
             )
             yield f"data: {stats.json()}\n\n"
+            last_stats = stats
             
             while True:
                 # If client disconnects, stop sending events
@@ -297,15 +361,22 @@ async def sse_statistics(request: Request):
                             get_database(), get_emotional_state_engine()
                         )
                         
-                        # Format as SSE
-                        yield f"data: {stats.json()}\n\n"
+                        # Only send update if statistics have changed
+                        if last_stats is None or manager._stats_changed(last_stats, stats):
+                            # Format as SSE
+                            yield f"data: {stats.json()}\n\n"
+                            last_stats = stats
                         
                     except asyncio.TimeoutError:
-                        # Timeout occurred, send periodic update
+                        # Timeout occurred, check if we need to send periodic update
                         stats = get_touch_statistics(
                             get_database(), get_emotional_state_engine()
                         )
-                        yield f"data: {stats.json()}\n\n"
+                        
+                        # Only send update if statistics have changed
+                        if last_stats is None or manager._stats_changed(last_stats, stats):
+                            yield f"data: {stats.json()}\n\n"
+                            last_stats = stats
                         
                 except Exception as e:
                     logger.error(f"Error generating SSE: {e}")
@@ -344,7 +415,7 @@ async def notify_touch_event_async():
         stats = get_touch_statistics(
             get_database(), get_emotional_state_engine()
         )
-        await manager.broadcast(ApiResponse(success=True, data=stats).json())
+        await manager.broadcast_stats(stats)
     except Exception as e:
         logger.error(f"Error broadcasting to WebSocket clients: {e}")
 
