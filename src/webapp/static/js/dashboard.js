@@ -75,15 +75,48 @@ function updateMetrics(data) {
     animateUpdate('today-count');
 }
 
-// Initialize EventSource for server-sent events
-let evtSource = null;
+// Initialize WebSocket connection
+let socket = null;
 
-function connectEventSource() {
-    if (evtSource) {
-        evtSource.close();
+function connectWebSocket() {
+    if (socket) {
+        socket.close();
     }
 
-    evtSource = new EventSource('/api/events/statistics');
+    // Determine the correct WebSocket URL based on the current page URL
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/api/ws/statistics`;
+    
+    socket = new WebSocket(wsUrl);
+
+    socket.onopen = function() {
+        console.log('WebSocket connection established');
+    };
+
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        if (data.success) {
+            updateMetrics(data.data);
+        } else {
+            console.error('Error in WebSocket message:', data.error);
+        }
+    };
+
+    socket.onclose = function() {
+        console.log('WebSocket connection closed. Reconnecting in 5 seconds...');
+        setTimeout(connectWebSocket, 5000);
+    };
+
+    socket.onerror = function(error) {
+        console.error('WebSocket error:', error);
+        socket.close();
+    };
+}
+
+// Fallback to SSE if WebSockets are not supported
+function connectEventSource() {
+    console.log('Falling back to SSE connection');
+    let evtSource = new EventSource('/api/events/statistics');
 
     evtSource.onmessage = function (event) {
         const data = JSON.parse(event.data);
@@ -100,6 +133,7 @@ function connectEventSource() {
         setTimeout(connectEventSource, 5000);
     };
 }
+}
 
 // Initial data load
 async function loadInitialData() {
@@ -109,8 +143,13 @@ async function loadInitialData() {
 
         if (result.success) {
             updateMetrics(result.data);
-            // Connect to SSE after initial load
-            connectEventSource();
+            // Try to connect using WebSockets first
+            if ('WebSocket' in window) {
+                connectWebSocket();
+            } else {
+                // Fall back to SSE if WebSockets are not supported
+                connectEventSource();
+            }
         } else {
             console.error('Error loading initial data:', result.error);
             setTimeout(loadInitialData, 3000);

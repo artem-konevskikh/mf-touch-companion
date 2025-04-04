@@ -5,8 +5,9 @@ API routes for the web application.
 import asyncio
 import logging
 import time
+from typing import List
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
 from src.database import Database
@@ -22,6 +23,30 @@ logger = logging.getLogger(__name__)
 database: Database | None = None
 emotional_state_engine: EmotionalStateEngine | None = None
 update_interval = 5.0  # Default update interval in seconds
+
+
+# WebSocket connection manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception as e:
+                logger.error(f"Error sending message to WebSocket: {e}")
+
+
+# Create a connection manager instance
+manager = ConnectionManager()
 
 
 def get_database():
@@ -83,9 +108,50 @@ async def get_statistics(statistics: TouchStatistics = Depends(get_touch_statist
         return ApiResponse(success=False, error=str(e))
 
 
+@router.websocket("/ws/statistics")
+async def websocket_statistics(websocket: WebSocket):
+    """WebSocket endpoint for statistics updates."""
+    await manager.connect(websocket)
+    
+    try:
+        # Send initial statistics
+        stats = get_touch_statistics(
+            get_database(), get_emotional_state_engine()
+        )
+        await websocket.send_text(ApiResponse(success=True, data=stats).json())
+        
+        # Keep the connection alive and send periodic updates
+        while True:
+            try:
+                # Wait for the update interval before sending the next update
+                await asyncio.sleep(update_interval)
+                
+                # Get fresh statistics
+                stats = get_touch_statistics(
+                    get_database(), get_emotional_state_engine()
+                )
+                
+                # Send the update
+                await websocket.send_text(ApiResponse(success=True, data=stats).json())
+                
+            except Exception as e:
+                logger.error(f"Error in WebSocket communication: {e}")
+                await websocket.send_text(ApiResponse(success=False, error=str(e)).json())
+                await asyncio.sleep(1)  # Wait a bit before trying again
+                
+    except WebSocketDisconnect:
+        logger.info("WebSocket client disconnected")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+    finally:
+        # Remove this connection when done
+        manager.disconnect(websocket)
+
+
+# Keep the SSE endpoint for backward compatibility
 @router.get("/events/statistics")
 async def sse_statistics(request: Request):
-    """Server-sent events for statistics updates."""
+    """Server-sent events for statistics updates (legacy endpoint)."""
 
     # Create a queue for touch events
     queue: asyncio.Queue = asyncio.Queue()
@@ -147,16 +213,28 @@ async def sse_statistics(request: Request):
     return EventSourceResponse(event_generator())
 
 
-# Function to notify all SSE clients about new touch events
-def notify_touch_event():
-    """Notify all connected SSE clients about a new touch event."""
+# Function to notify all clients about new touch events
+async def notify_touch_event():
+    """Notify all connected clients about a new touch event."""
+    # Notify SSE clients
     if hasattr(sse_statistics, "active_connections"):
         for queue in sse_statistics.active_connections:
             # Put a notification in each client's queue
             try:
                 queue.put_nowait(None)  # None is just a signal, the actual data will be fetched fresh
             except Exception as e:
-                logger.error(f"Error notifying client: {e}")
+                logger.error(f"Error notifying SSE client: {e}")
+    
+    # Notify WebSocket clients
+    try:
+        # Get fresh statistics
+        stats = get_touch_statistics(
+            get_database(), get_emotional_state_engine()
+        )
+        # Broadcast to all WebSocket clients
+        await manager.broadcast(ApiResponse(success=True, data=stats).json())
+    except Exception as e:
+        logger.error(f"Error broadcasting to WebSocket clients: {e}")
 
 @router.post("/state/{state}", response_model=ApiResponse)
 async def set_emotional_state(
