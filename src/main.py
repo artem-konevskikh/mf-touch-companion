@@ -154,7 +154,7 @@ class TouchCompanionApp:
             self.webapp.run()  # This will block until the application exits
 
         except Exception as e:
-            logger.error(f"Error starting application: {e}")
+            logger.error(f"Error starting application: {e}", exc_info=True)
             self.stop()
             raise
 
@@ -185,7 +185,7 @@ class TouchCompanionApp:
             logger.info("Application stopped")
 
         except Exception as e:
-            logger.error(f"Error stopping application: {e}")
+            logger.error(f"Error stopping application: {e}", exc_info=True)
             raise
 
 

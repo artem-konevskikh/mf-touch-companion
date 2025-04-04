@@ -92,7 +92,7 @@ class TouchSensorService:
 
             except Exception as e:
                 error_count += 1
-                logger.error(f"Error in touch sensor service: {e}")
+                logger.error(f"Error in touch sensor service: {e}", exc_info=True)
 
                 if error_count >= max_errors:
                     logger.critical(
@@ -150,7 +150,7 @@ class TouchSensorService:
                         self.callback(event)
 
                 except Exception as e:
-                    logger.error(f"Failed to store touch event: {e}")
+                    logger.error(f"Failed to store touch event: {e}", exc_info=True)
 
     def get_active_electrodes(self) -> List[int]:
         """Get a list of currently active (touched) electrodes.

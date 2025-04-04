@@ -156,7 +156,7 @@ class EmotionalStateEngine:
                     self._update_led_state()
 
             except Exception as e:
-                logger.error(f"Error in emotional state monitoring: {e}")
+                logger.error(f"Error in emotional state monitoring: {e}", exc_info=True)
 
             # Wait before next check
             time.sleep(self.check_interval)
@@ -170,7 +170,7 @@ class EmotionalStateEngine:
             self.database.add_emotional_state(state_event)
             logger.debug(f"Recorded state change to {self.current_state}")
         except Exception as e:
-            logger.error(f"Failed to record state change: {e}")
+            logger.error(f"Failed to record state change: {e}", exc_info=True)
 
     def _update_led_state(self) -> None:
         """Update the LED strip based on the current emotional state."""
@@ -189,7 +189,7 @@ class EmotionalStateEngine:
             self._start_shimmer(color)
 
         except Exception as e:
-            logger.error(f"Failed to update LED state: {e}")
+            logger.error(f"Failed to update LED state: {e}", exc_info=True)
 
     def _start_shimmer(self, color: Tuple[int, int, int]) -> None:
         """Start a shimmer effect in a separate thread.
@@ -244,7 +244,7 @@ class EmotionalStateEngine:
             state: The emotional state to set
         """
         if state not in EmotionalStateType:
-            logger.error(f"Invalid emotional state: {state}")
+            logger.error(f"Invalid emotional state: {state}", exc_info=True)
             return
 
         logger.info(f"Forcing emotional state to {state}")
