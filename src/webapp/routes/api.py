@@ -110,6 +110,10 @@ async def get_statistics(statistics: TouchStatistics = Depends(get_touch_statist
         return ApiResponse(success=False, error=str(e))
 
 
+# Event queue for WebSocket notifications
+# This will be used to notify WebSocket clients about touch events
+websocket_event_queue = asyncio.Queue()
+
 @router.websocket("/ws/statistics")
 async def websocket_statistics(websocket: WebSocket):
     """WebSocket endpoint for statistics updates."""
@@ -123,21 +127,28 @@ async def websocket_statistics(websocket: WebSocket):
         await websocket.send_text(ApiResponse(success=True, data=stats).json())
         
         # Keep the connection alive and send periodic updates
+        last_update_time = time.time()
+        min_update_interval = 0.1  # Minimum time between updates (100ms)
+        
         while True:
             try:
-                # Wait for the update interval or for a message from the client
-                # Use wait_for with a timeout to handle both cases
+                # Wait for the update interval, a touch event, or a message from the client
                 receive_task = asyncio.create_task(websocket.receive_text())
                 update_task = asyncio.create_task(asyncio.sleep(update_interval))
+                event_task = asyncio.create_task(websocket_event_queue.get())
                 
                 done, pending = await asyncio.wait(
-                    [receive_task, update_task],
+                    [receive_task, update_task, event_task],
                     return_when=asyncio.FIRST_COMPLETED
                 )
                 
-                # Cancel the pending task
+                # Cancel the pending tasks
                 for task in pending:
                     task.cancel()
+                
+                current_time = time.time()
+                time_since_last_update = current_time - last_update_time
+                should_update = False
                 
                 # Handle client message (ping)
                 if receive_task in done:
@@ -151,8 +162,22 @@ async def websocket_statistics(websocket: WebSocket):
                     except Exception as e:
                         logger.error(f"Error processing client message: {e}")
                 
-                # Send periodic update
+                # Handle touch event notification
+                if event_task in done:
+                    # Only update if enough time has passed since the last update
+                    if time_since_last_update >= min_update_interval:
+                        should_update = True
+                    else:
+                        # If we're updating too frequently, put the event back in the queue
+                        # for the next iteration
+                        await websocket_event_queue.put(None)
+                
+                # Handle periodic update
                 if update_task in done:
+                    should_update = True
+                
+                # Send update if needed
+                if should_update:
                     # Get fresh statistics
                     stats = get_touch_statistics(
                         get_database(), get_emotional_state_engine()
@@ -160,6 +185,7 @@ async def websocket_statistics(websocket: WebSocket):
                     
                     # Send the update
                     await websocket.send_text(ApiResponse(success=True, data=stats).json())
+                    last_update_time = current_time
                 
             except Exception as e:
                 logger.error(f"Error in WebSocket communication: {e}")
@@ -241,8 +267,8 @@ async def sse_statistics(request: Request):
 
 
 # Function to notify all clients about new touch events
-async def notify_touch_event():
-    """Notify all connected clients about a new touch event."""
+async def notify_touch_event_async():
+    """Notify all connected clients about a new touch event (async version)."""
     # Notify SSE clients
     if hasattr(sse_statistics, "active_connections"):
         for queue in sse_statistics.active_connections:
@@ -254,14 +280,41 @@ async def notify_touch_event():
     
     # Notify WebSocket clients
     try:
-        # Get fresh statistics
+        # Put an event in the WebSocket event queue for immediate notification
+        await websocket_event_queue.put(None)
+        
+        # Also broadcast to all WebSocket clients directly
+        # This ensures backward compatibility and handles cases where the WebSocket
+        # connection might not be using the event queue yet
         stats = get_touch_statistics(
             get_database(), get_emotional_state_engine()
         )
-        # Broadcast to all WebSocket clients
         await manager.broadcast(ApiResponse(success=True, data=stats).json())
     except Exception as e:
         logger.error(f"Error broadcasting to WebSocket clients: {e}")
+
+
+# Wrapper function that can be called from synchronous code
+def notify_touch_event():
+    """Notify all connected clients about a new touch event.
+    
+    This function can be called from synchronous code and will schedule
+    the async notification in the event loop.
+    """
+    # Import asyncio here to avoid circular imports
+    import asyncio
+    
+    # Get the current event loop or create a new one
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        # If there's no event loop in the current thread, create a new one
+        # This should not happen in normal operation but is here as a safeguard
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    
+    # Schedule the async notification
+    asyncio.run_coroutine_threadsafe(notify_touch_event_async(), loop)
 
 @router.post("/state/{state}", response_model=ApiResponse)
 async def set_emotional_state(
