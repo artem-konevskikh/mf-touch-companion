@@ -10,6 +10,4 @@ mypy
 types-requests
 
 # Development tools
-black
-isort
-flake8
+ruff
