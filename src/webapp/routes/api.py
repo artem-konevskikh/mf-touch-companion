@@ -140,5 +140,32 @@ class EventSourceResponse(JSONResponse):
 
     media_type = "text/event-stream"
 
+    def __init__(self, content, status_code=200, headers=None, media_type=None, background=None):
+        self.content_generator = content
+        super().__init__(
+            content={},  # Empty content as we'll stream it
+            status_code=status_code,
+            headers=headers or {},
+            media_type=media_type,
+            background=background,
+        )
+
     def render(self, content):
-        return content.encode("utf-8")
+        return b""  # Return empty bytes as content is streamed in __call__
+        
+    async def __call__(self, scope, receive, send):
+        # Set appropriate headers for SSE
+        headers = [(b"content-type", b"text/event-stream"), 
+                  (b"cache-control", b"no-cache"), 
+                  (b"connection", b"keep-alive")]
+        
+        # Send initial response headers
+        await send({"type": "http.response.start", "status": self.status_code, "headers": headers})
+        
+        # Stream the content from the generator
+        async for data in self.content_generator:
+            payload = data.encode("utf-8")
+            await send({"type": "http.response.body", "body": payload, "more_body": True})
+            
+        # Send final empty body chunk to close the response
+        await send({"type": "http.response.body", "body": b"", "more_body": False})
