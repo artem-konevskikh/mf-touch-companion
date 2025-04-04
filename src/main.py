@@ -205,7 +205,7 @@ def parse_args():
     parser.add_argument(
         "--led-device",
         type=str,
-        default="/dev/pi5neo0",
+        default="/dev/spidev0.0",
         help="Device path for the LED strip",
     )
     parser.add_argument(
