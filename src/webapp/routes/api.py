@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 # Global references to services - will be set during app initialization
 database: Database | None = None
 emotional_state_engine: EmotionalStateEngine | None = None
-update_interval = 5.0  # Default update interval in seconds
+update_interval = 1.0  # Default update interval in seconds
 
 
 # WebSocket connection manager

@@ -55,7 +55,7 @@ class WebApp:
         port: int = 8000,
         static_dir: Union[str, Path] = Path("src/webapp/static"),
         templates_dir: Union[str, Path] = Path("src/webapp/templates"),
-        update_interval: float = 5.0,
+        update_interval: float = 1.0,
     ) -> None:
         """Initialize the web application.
 
