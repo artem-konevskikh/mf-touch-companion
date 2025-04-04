@@ -5,7 +5,6 @@ API routes for the web application.
 import asyncio
 import logging
 import time
-from typing import Callable
 
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
@@ -85,10 +84,7 @@ async def get_statistics(statistics: TouchStatistics = Depends(get_touch_statist
 
 
 @router.get("/events/statistics")
-async def sse_statistics(
-    request: Request,
-    get_stats: Callable[[], TouchStatistics] = Depends(get_touch_statistics),
-):
+async def sse_statistics(request: Request):
     """Server-sent events for statistics updates."""
 
     async def event_generator():
@@ -99,8 +95,10 @@ async def sse_statistics(
                 break
 
             try:
-                # Get current statistics
-                stats = get_stats()
+                # Get fresh statistics for each update
+                stats = get_touch_statistics(
+                    get_database(), get_emotional_state_engine()
+                )
 
                 # Format as SSE
                 yield f"data: {stats.json()}\n\n"
@@ -140,7 +138,9 @@ class EventSourceResponse(JSONResponse):
 
     media_type = "text/event-stream"
 
-    def __init__(self, content, status_code=200, headers=None, media_type=None, background=None):
+    def __init__(
+        self, content, status_code=200, headers=None, media_type=None, background=None
+    ):
         self.content_generator = content
         super().__init__(
             content={},  # Empty content as we'll stream it
@@ -152,20 +152,30 @@ class EventSourceResponse(JSONResponse):
 
     def render(self, content):
         return b""  # Return empty bytes as content is streamed in __call__
-        
+
     async def __call__(self, scope, receive, send):
         # Set appropriate headers for SSE
-        headers = [(b"content-type", b"text/event-stream"), 
-                  (b"cache-control", b"no-cache"), 
-                  (b"connection", b"keep-alive")]
-        
+        headers = [
+            (b"content-type", b"text/event-stream"),
+            (b"cache-control", b"no-cache"),
+            (b"connection", b"keep-alive"),
+        ]
+
         # Send initial response headers
-        await send({"type": "http.response.start", "status": self.status_code, "headers": headers})
-        
+        await send(
+            {
+                "type": "http.response.start",
+                "status": self.status_code,
+                "headers": headers,
+            }
+        )
+
         # Stream the content from the generator
         async for data in self.content_generator:
             payload = data.encode("utf-8")
-            await send({"type": "http.response.body", "body": payload, "more_body": True})
-            
+            await send(
+                {"type": "http.response.body", "body": payload, "more_body": True}
+            )
+
         # Send final empty body chunk to close the response
         await send({"type": "http.response.body", "body": b"", "more_body": False})
