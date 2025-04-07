@@ -118,8 +118,8 @@ class EmotionalStateEngine:
             try:
                 # Get current touch frequency
                 touch_frequency = self.database.get_touch_frequency(self.measure_window)
-                logger.debug(
-                    f"Current touch frequency: {touch_frequency:.2f} touches/minute"
+                logger.info(
+                    f"Current touch frequency: {touch_frequency:.2f} touches/minute (glad_threshold: {self.glad_threshold}, sad_threshold: {self.sad_threshold})"
                 )
 
                 # Check if state transition is needed
@@ -164,7 +164,7 @@ class EmotionalStateEngine:
                 state=self.current_state.value, timestamp=time.time()
             )
             self.database.add_emotional_state(state_event)
-            logger.debug(f"Recorded state change to {self.current_state}")
+            logger.info(f"Recorded state change to {self.current_state}")
         except Exception as e:
             logger.error(f"Failed to record state change: {e}", exc_info=True)
 
@@ -175,8 +175,9 @@ class EmotionalStateEngine:
 
         try:
             # Change color with smooth transition
+            logger.info(f"Changing LED color to {color} for state {self.current_state}")
             self.led_strip.change_color(color, steps=self.transition_steps)
-            logger.debug(f"LED color changed to {color} for state {self.current_state}")
+            logger.info(f"LED color changed to {color} for state {self.current_state}")
 
         except Exception as e:
             logger.error(f"Failed to update LED state: {e}", exc_info=True)
