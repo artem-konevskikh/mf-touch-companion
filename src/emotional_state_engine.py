@@ -75,7 +75,6 @@ class EmotionalStateEngine:
             self.current_state = EmotionalStateType.SAD
 
         self._running = False
-        self._shimmer_thread: Optional[threading.Thread] = None
         self._state_thread: Optional[threading.Thread] = None
 
         logger.info(
@@ -106,9 +105,6 @@ class EmotionalStateEngine:
             return
 
         self._running = False
-
-        # Stop any active shimmer effect
-        self._stop_shimmer()
 
         # Wait for threads to complete
         if self._state_thread:
@@ -177,61 +173,15 @@ class EmotionalStateEngine:
         # Get color for current state
         color = self.STATE_COLORS[self.current_state]
 
-        # Stop any running shimmer effect
-        self._stop_shimmer()
-
         try:
             # Change color with smooth transition
             self.led_strip.change_color(color, steps=self.transition_steps)
             logger.debug(f"LED color changed to {color} for state {self.current_state}")
 
-            # Start shimmer effect in a separate thread
-            self._start_shimmer(color)
-
         except Exception as e:
             logger.error(f"Failed to update LED state: {e}", exc_info=True)
 
-    def _start_shimmer(self, color: Tuple[int, int, int]) -> None:
-        """Start a shimmer effect in a separate thread.
-
-        Args:
-            color: Base color for the shimmer effect
-        """
-        # Ensure any previous shimmer is completely stopped before starting a new one
-        self._stop_shimmer()
-        
-        # Make sure the shimmer flag is reset before starting a new shimmer
-        self.led_strip._shimmer_active = True
-        
-        # Adjust shimmer speed based on emotional state
-        speed = 0.15 if self.current_state == EmotionalStateType.SAD else 0.08
-
-        # Create and start the shimmer thread
-        self._shimmer_thread = threading.Thread(
-            target=self.led_strip.shimmer, args=(color, speed), daemon=True
-        )
-        self._shimmer_thread.start()
-        logger.debug(f"Started shimmer effect for state {self.current_state}")
-        
-        # Small delay to ensure the shimmer thread has started
-        time.sleep(0.1)
-
-    def _stop_shimmer(self) -> None:
-        """Stop any active shimmer effect."""
-        # First set the flag to stop the shimmer loop
-        self.led_strip._shimmer_active = False
-        
-        # Wait for the shimmer thread to exit
-        if self._shimmer_thread and self._shimmer_thread.is_alive():
-            logger.debug("Waiting for shimmer thread to exit")
-            # Give more time for the thread to properly exit
-            self._shimmer_thread.join(timeout=2.0)
-            
-            # If thread is still alive after timeout, log a warning
-            if self._shimmer_thread.is_alive():
-                logger.warning("Shimmer thread did not exit cleanly")
-                
-        self._shimmer_thread = None
+    # Shimmer methods removed as we're using solid colors instead
 
     def get_current_state(self) -> EmotionalStateType:
         """Get the current emotional state.

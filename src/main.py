@@ -8,6 +8,7 @@ import argparse
 import logging
 import signal
 import sys
+import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -181,11 +182,6 @@ class TouchCompanionApp:
             # Ensure LED strip is properly cleared
             if self.led_strip:
                 logger.info("Clearing LED strip")
-                # Make sure any active effects are stopped
-                if hasattr(self.led_strip, "_shimmer_active"):
-                    self.led_strip._shimmer_active = False
-                    # Give time for any active threads to exit
-                    time.sleep(0.3)
                 # Now clear the LEDs
                 self.led_strip.clear()
 
