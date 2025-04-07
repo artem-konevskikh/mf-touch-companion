@@ -139,9 +139,9 @@ The device has two emotional states:
 - **Sad (грустный)** - Represented by blue color and (︶︹︶) emoji
 - **Glad (рад)** - Represented by yellow/gold color and (◠‿◠) emoji
 
-The state changes based on touch frequency:
-- Transitions from sad to glad when touch frequency exceeds 5 touches per minute
-- Transitions from glad to sad when touch frequency drops below 2 touches per minute
+The state changes based on touch count in the last hour:
+- Transitions from sad to glad when there are 20 or more touches in the last hour
+- Transitions from glad to sad when there are less than 20 touches in the last hour
 
 ### Custom Configuration
 

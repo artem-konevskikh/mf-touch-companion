@@ -40,13 +40,14 @@ class EmotionalStateEngine:
         self,
         database: Database,
         led_strip: LedStrip,
-        glad_threshold: float = 5.0,  # Touches per minute to trigger glad state
-        sad_threshold: float = 2.0,  # Touches per minute to revert to sad state
-        check_interval: float = 10.0,  # How often to check touch frequency
+        check_interval: float = 10.0,  # How often to check touch count
         transition_steps: int = 80,  # Steps for color transition
-        measure_window: int = 900,  # Time window to measure touch frequency (15 minutes)
     ) -> None:
         """Initialize the emotional state engine.
+
+        The emotional state changes based on touch count in the last hour:
+        - Transitions from sad to glad when there are 20 or more touches in the last hour
+        - Transitions from glad to sad when there are less than 20 touches in the last hour
 
         Args:
             database: The database instance
@@ -59,11 +60,10 @@ class EmotionalStateEngine:
         """
         self.database = database
         self.led_strip = led_strip
-        self.glad_threshold = glad_threshold
-        self.sad_threshold = sad_threshold
         self.check_interval = check_interval
         self.transition_steps = transition_steps
-        self.measure_window = measure_window
+        # Fixed to 1 hour (3600 seconds) for measuring touch count
+        self.measure_window = 3600
 
         # Initialize state from database or default to sad
         try:
@@ -113,13 +113,13 @@ class EmotionalStateEngine:
         logger.info("Emotional state engine stopped")
 
     def _monitor_state(self) -> None:
-        """Monitor touch frequency and update emotional state accordingly."""
+        """Monitor touch count in the last hour and update emotional state accordingly."""
         while self._running:
             try:
-                # Get current touch frequency
-                touch_frequency = self.database.get_touch_frequency(self.measure_window)
+                # Get touch count in the last hour
+                touch_count = self.database.get_touch_count_last_hour()
                 logger.info(
-                    f"Current touch frequency: {touch_frequency:.2f} touches/minute (glad_threshold: {self.glad_threshold}, sad_threshold: {self.sad_threshold})"
+                    f"Current touch count in last hour: {touch_count} touches (threshold: 20)"
                 )
 
                 # Check if state transition is needed
@@ -127,26 +127,26 @@ class EmotionalStateEngine:
 
                 if (
                     self.current_state == EmotionalStateType.SAD
-                    and touch_frequency >= self.glad_threshold
+                    and touch_count >= 20
                 ):
                     # Transition to glad state
                     self.current_state = EmotionalStateType.GLAD
                     logger.info(
                         f"State transition: {old_state} -> {self.current_state} "
-                        f"(frequency: {touch_frequency:.2f})"
+                        f"(touch count: {touch_count})"
                     )
                     self._record_state_change()
                     self._update_led_state()
 
                 elif (
                     self.current_state == EmotionalStateType.GLAD
-                    and touch_frequency <= self.sad_threshold
+                    and touch_count < 20
                 ):
                     # Transition to sad state
                     self.current_state = EmotionalStateType.SAD
                     logger.info(
                         f"State transition: {old_state} -> {self.current_state} "
-                        f"(frequency: {touch_frequency:.2f})"
+                        f"(touch count: {touch_count})"
                     )
                     self._record_state_change()
                     self._update_led_state()
