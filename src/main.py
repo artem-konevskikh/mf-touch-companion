@@ -32,12 +32,11 @@ logger = logging.getLogger(__name__)
 
 class TouchCompanionApp:
     """Main application class for the touch sensor companion device."""
-
     def __init__(
         self,
         data_dir: Path = Path.home() / ".touch_companion",
         led_device: str = "/dev/spidev0.0",
-        led_count: int = 16,
+        led_count: int = 30,
         led_frequency: int = 800,
         i2c_address: int = 0x5A,
         i2c_bus: int = 1,
@@ -215,10 +214,10 @@ def parse_args():
         help="Device path for the LED strip",
     )
     parser.add_argument(
-        "--led-count", type=int, default=20, help="Number of LEDs in the strip"
+        "--led-count", type=int, default=30, help="Number of LEDs in the strip"
     )
     parser.add_argument(
-        "--led-frequency", type=int, default=800000, help="Frequency for the LED strip"
+        "--led-frequency", type=int, default=800, help="Frequency for the LED strip"
     )
     parser.add_argument(
         "--i2c-address",

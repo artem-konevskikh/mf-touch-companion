@@ -181,7 +181,6 @@ class EmotionalStateEngine:
         except Exception as e:
             logger.error(f"Failed to update LED state: {e}", exc_info=True)
 
-    # Shimmer methods removed as we're using solid colors instead
 
     def get_current_state(self) -> EmotionalStateType:
         """Get the current emotional state.
