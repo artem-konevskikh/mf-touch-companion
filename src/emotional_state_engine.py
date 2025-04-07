@@ -36,6 +36,9 @@ class EmotionalStateEngine:
         EmotionalStateType.GLAD: (255, 140, 0),  # Warm orange for glad
     }
 
+    # Touch count threshold for state transitions
+    GLAD_THRESHOLD = 20
+
     def __init__(
         self,
         database: Database,
@@ -112,45 +115,63 @@ class EmotionalStateEngine:
 
         logger.info("Emotional state engine stopped")
 
+    def check_and_update_state(self) -> bool:
+        """Check touch count and update emotional state if needed.
+        
+        This method is designed to be called when a new touch event occurs,
+        allowing the state to update immediately when the threshold is reached.
+        
+        Returns:
+            True if the state was changed, False otherwise
+        """
+        try:
+            # Get touch count in the last hour
+            touch_count = self.database.get_touch_count_last_hour()
+            
+            # Check if state transition is needed
+            old_state = self.current_state
+            state_changed = False
+
+            if (
+                self.current_state == EmotionalStateType.SAD
+                and touch_count >= self.GLAD_THRESHOLD
+            ):
+                # Transition to glad state
+                self.current_state = EmotionalStateType.GLAD
+                logger.info(
+                    f"State transition: {old_state} -> {self.current_state} "
+                    f"(touch count: {touch_count})"
+                )
+                self._record_state_change()
+                self._update_led_state()
+                state_changed = True
+
+            elif (
+                self.current_state == EmotionalStateType.GLAD
+                and touch_count < self.GLAD_THRESHOLD
+            ):
+                # Transition to sad state
+                self.current_state = EmotionalStateType.SAD
+                logger.info(
+                    f"State transition: {old_state} -> {self.current_state} "
+                    f"(touch count: {touch_count})"
+                )
+                self._record_state_change()
+                self._update_led_state()
+                state_changed = True
+                
+            return state_changed
+            
+        except Exception as e:
+            logger.error(f"Error checking emotional state: {e}", exc_info=True)
+            return False
+
     def _monitor_state(self) -> None:
         """Monitor touch count in the last hour and update emotional state accordingly."""
         while self._running:
             try:
-                # Get touch count in the last hour
-                touch_count = self.database.get_touch_count_last_hour()
-                logger.info(
-                    f"Current touch count in last hour: {touch_count} touches (threshold: 20)"
-                )
-
-                # Check if state transition is needed
-                old_state = self.current_state
-
-                if (
-                    self.current_state == EmotionalStateType.SAD
-                    and touch_count >= 20
-                ):
-                    # Transition to glad state
-                    self.current_state = EmotionalStateType.GLAD
-                    logger.info(
-                        f"State transition: {old_state} -> {self.current_state} "
-                        f"(touch count: {touch_count})"
-                    )
-                    self._record_state_change()
-                    self._update_led_state()
-
-                elif (
-                    self.current_state == EmotionalStateType.GLAD
-                    and touch_count < 20
-                ):
-                    # Transition to sad state
-                    self.current_state = EmotionalStateType.SAD
-                    logger.info(
-                        f"State transition: {old_state} -> {self.current_state} "
-                        f"(touch count: {touch_count})"
-                    )
-                    self._record_state_change()
-                    self._update_led_state()
-
+                # Use the same method as for touch events to check and update state
+                self.check_and_update_state()
             except Exception as e:
                 logger.error(f"Error in emotional state monitoring: {e}", exc_info=True)
 

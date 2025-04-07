@@ -124,6 +124,12 @@ class TouchCompanionApp:
                 logger.debug(
                     f"Touch event: sensor={event.sensor_id}, duration={event.duration:.3f}s"
                 )
+                # Check if emotional state should change based on this touch
+                if self.emotional_state_engine:
+                    state_changed = self.emotional_state_engine.check_and_update_state()
+                    if state_changed:
+                        logger.info("Emotional state updated due to touch event")
+                
                 # Notify all connected web clients about the new touch event
                 from src.webapp.routes.api import notify_touch_event
                 notify_touch_event()
