@@ -52,28 +52,35 @@ class LedStrip:
 
         # Initialize each LED with a different phase to create more natural twinkling
         led_phases = [random.uniform(0, 2 * math.pi) for _ in range(self.neo.num_leds)]
-        led_speeds = [random.uniform(0.3, 1.0) for _ in range(self.neo.num_leds)]
+        led_speeds = [random.uniform(0.1, 0.3) for _ in range(self.neo.num_leds)]
 
-        while self._shimmer_active:
-            # Update each LED independently
-            for led in range(self.neo.num_leds):
-                # Create a more pronounced shimmer effect (0.5 to 1.5 range)
-                shimmer_factor = 0.7 + math.sin(led_phases[led]) * 0.5
+        try:
+            while self._shimmer_active:
+                # Update each LED independently
+                for led in range(self.neo.num_leds):
+                    # Create a gentler shimmer effect (0.8 to 1.2 range)
+                    shimmer_factor = 1.0 + math.sin(led_phases[led]) * 0.2
 
-                # Apply the shimmer factor to create a unique color for each LED
-                shimmer_color = tuple(
-                    max(0, min(255, int(c * shimmer_factor))) for c in color
-                )
+                    # Apply the shimmer factor to create a unique color for each LED
+                    shimmer_color = tuple(
+                        max(0, min(255, int(c * shimmer_factor))) for c in color
+                    )
 
-                # Update the LED with its unique color
-                self.neo.set_led_color(led, *shimmer_color)
+                    # Update the LED with its unique color
+                    self.neo.set_led_color(led, *shimmer_color)
 
-                # Update the phase for this LED - increase the speed for more visible changes
-                led_phases[led] += 0.3 * led_speeds[led]
+                    # Update the phase for this LED - gentler speed changes
+                    led_phases[led] += 0.1 * led_speeds[led]
 
-            # Update the entire strip at once
-            self.neo.update_strip()
-            time.sleep(speed)
+                # Update the entire strip at once
+                self.neo.update_strip()
+                time.sleep(speed)
+        except Exception as e:
+            logger.error(f"Error in shimmer effect: {e}")
+        finally:
+            # Ensure strip returns to solid color if shimmer is stopped
+            if not self._shimmer_active:
+                self.change_color(color, steps=1)
 
     def set_intensity(self, intensity, color=None):
         """Sets the intensity/brightness of the LED strip and applies it to a color

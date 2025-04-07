@@ -33,7 +33,7 @@ class EmotionalStateEngine:
     # Color mappings for different states
     STATE_COLORS: Dict[EmotionalStateType, Tuple[int, int, int]] = {
         EmotionalStateType.SAD: (0, 0, 255),  # Blue for sad
-        EmotionalStateType.GLAD: (255, 215, 0),  # Gold/yellow for glad
+        EmotionalStateType.GLAD: (255, 140, 0),  # Warm orange for glad
     }
 
     def __init__(
