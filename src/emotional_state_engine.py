@@ -197,26 +197,41 @@ class EmotionalStateEngine:
         Args:
             color: Base color for the shimmer effect
         """
-        self._stop_shimmer()  # Ensure any previous shimmer is stopped
-
+        # Ensure any previous shimmer is completely stopped before starting a new one
+        self._stop_shimmer()
+        
+        # Make sure the shimmer flag is reset before starting a new shimmer
+        self.led_strip._shimmer_active = True
+        
         # Adjust shimmer speed based on emotional state
         speed = 0.15 if self.current_state == EmotionalStateType.SAD else 0.08
 
+        # Create and start the shimmer thread
         self._shimmer_thread = threading.Thread(
             target=self.led_strip.shimmer, args=(color, speed), daemon=True
         )
         self._shimmer_thread.start()
         logger.debug(f"Started shimmer effect for state {self.current_state}")
+        
+        # Small delay to ensure the shimmer thread has started
+        time.sleep(0.1)
 
     def _stop_shimmer(self) -> None:
         """Stop any active shimmer effect."""
-        if hasattr(self.led_strip, "_shimmer_active"):
-            self.led_strip._shimmer_active = False
-
+        # First set the flag to stop the shimmer loop
+        self.led_strip._shimmer_active = False
+        
+        # Wait for the shimmer thread to exit
         if self._shimmer_thread and self._shimmer_thread.is_alive():
-            # Wait a bit for the thread to exit
-            self._shimmer_thread.join(timeout=1.0)
-            self._shimmer_thread = None
+            logger.debug("Waiting for shimmer thread to exit")
+            # Give more time for the thread to properly exit
+            self._shimmer_thread.join(timeout=2.0)
+            
+            # If thread is still alive after timeout, log a warning
+            if self._shimmer_thread.is_alive():
+                logger.warning("Shimmer thread did not exit cleanly")
+                
+        self._shimmer_thread = None
 
     def get_current_state(self) -> EmotionalStateType:
         """Get the current emotional state.

@@ -178,8 +178,15 @@ class TouchCompanionApp:
                 logger.info("Stopping emotional state engine")
                 self.emotional_state_engine.stop()
 
+            # Ensure LED strip is properly cleared
             if self.led_strip:
                 logger.info("Clearing LED strip")
+                # Make sure any active effects are stopped
+                if hasattr(self.led_strip, "_shimmer_active"):
+                    self.led_strip._shimmer_active = False
+                    # Give time for any active threads to exit
+                    time.sleep(0.3)
+                # Now clear the LEDs
                 self.led_strip.clear()
 
             # Web app doesn't need explicit stopping as it will be terminated with the process
@@ -212,7 +219,7 @@ def parse_args():
         help="Device path for the LED strip",
     )
     parser.add_argument(
-        "--led-count", type=int, default=16, help="Number of LEDs in the strip"
+        "--led-count", type=int, default=20, help="Number of LEDs in the strip"
     )
     parser.add_argument(
         "--led-frequency", type=int, default=800000, help="Frequency for the LED strip"
