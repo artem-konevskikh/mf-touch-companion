@@ -34,7 +34,7 @@ class TouchCompanionApp:
     """Main application class for the touch sensor companion device."""
     def __init__(
         self,
-        data_dir: Path = Path.home() / ".touch_companion",
+        data_dir: Path = Path(__file__).parent.parent / "data",
         led_device: str = "/dev/spidev0.0",
         led_count: int = 30,
         led_frequency: int = 800,
@@ -204,7 +204,7 @@ def parse_args():
     parser.add_argument(
         "--data-dir",
         type=str,
-        default=str(Path.home() / ".touch_companion"),
+        default=str(Path(__file__).parent.parent / "data"),
         help="Directory for storing data files",
     )
     parser.add_argument(
