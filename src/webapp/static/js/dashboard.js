@@ -100,12 +100,8 @@ class DashboardController {
             stateEmoji.classList.add('sad');
         }
 
-        // State times
-        document.getElementById('sad-time').textContent = formatTime(data.emotional_state_time.sad);
-        document.getElementById('glad-time').textContent = formatTime(data.emotional_state_time.glad);
-
-        // Last update
-        document.getElementById('last-update').textContent = 'Последнее обновление: ' + formatDateTime(data.last_update);
+        // State times and last update removed from UI
+        // These lines were removed as per requirements
 
         // Animate updates
         animateUpdate('total-count');

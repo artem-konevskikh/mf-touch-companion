@@ -15,7 +15,7 @@
     <div class="container">
 
         <div class="dashboard">
-            <div class="metrics">
+            <div class="metrics-container">
                 <div class="metric-section">
                     <div class="metric-title">Всего прикосновений</div>
                     <div class="metric-value" id="total-count">0</div>
@@ -35,29 +35,15 @@
                     <div class="metric-title">Средняя длительность</div>
                     <div class="metric-value medium" id="avg-duration">0 сек</div>
                 </div>
-            </div>
-
-            <div class="emotional-state">
-                <div class="state-title">Эмоциональное состояние</div>
-                <div class="state-emoji" id="state-emoji">(︶︹︶)</div>
-
-                <div class="state-info">
-                    <div class="state-metric">
-                        <div class="metric-title">Время в состоянии "грустный"</div>
-                        <div class="metric-value small" id="sad-time">0 мин</div>
-                    </div>
-
-                    <div class="state-metric">
-                        <div class="metric-title">Время в состоянии "рад"</div>
-                        <div class="metric-value small" id="glad-time">0 мин</div>
-                    </div>
+                
+                <div class="metric-section emotional-state">
+                    <div class="metric-title">Эмоциональное состояние</div>
+                    <div class="state-emoji" id="state-emoji">(︶︹︶)</div>
                 </div>
             </div>
         </div>
 
-        <div class="footer">
-            <div id="last-update">Последнее обновление: только что</div>
-        </div>
+        <!-- Футер с обновлением удален -->
     </div>
 
     <script src="/static/js/dashboard.js"></script>
