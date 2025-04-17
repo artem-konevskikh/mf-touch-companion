@@ -7,79 +7,61 @@
         body {
             font-family: sans-serif;
             padding: 20px;
-            background-color: #f4f4f4;
+            background-color: #f4f4f4; /* Gray background */
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
 
         .container {
             background-color: #fff;
-            padding: 20px;
+            padding: 30px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            max-width: 400px;
-            margin: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
         }
 
         h1 {
-            text-align: center;
             color: #333;
+            margin-bottom: 25px;
+            font-size: 1.8em;
         }
 
         .metrics-container {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 15px; /* Increased gap */
+            margin-bottom: 20px;
         }
 
         .metric-section {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 0;
+            padding: 12px 0; /* Increased padding */
             border-bottom: 1px solid #eee;
+        }
+        .metric-section:last-child {
+             border-bottom: none; /* Remove border for the last item */
         }
 
         .metric-title {
-            font-size: 1em;
-            color: #666;
+            font-size: 1.1em; /* Slightly larger */
+            color: #555; /* Slightly darker gray */
         }
 
         .metric-value {
-            font-size: 1.1em;
+            font-size: 1.3em; /* Larger value */
             font-weight: bold;
-            color: #222;
+            color: #000;
         }
 
-        #status {
-            font-size: 1.2em;
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-        }
+        /* Remove styles for #status, .sad, .glad, #touch-count, #connection-status */
 
-        .sad {
-            background-color: #e0f2ff;
-            border: 1px solid #b3d7ff;
-            color: #0056b3;
-        }
-
-        .glad {
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
-        }
-
-        #touch-count {
-            font-weight: bold;
-        }
-
-        #connection-status {
-            margin-top: 10px;
-            font-size: 0.9em;
-            color: #666;
-            text-align: center;
-        }
     </style>
 </head>
 
@@ -88,20 +70,19 @@
         <h1>Touch Companion Status</h1>
         <div class="metrics-container">
             <div class="metric-section">
-                <div class="metric-title">Total Touches</div>
-                <div class="metric-value" id="total-touches">0</div>
-            </div>
-            <div class="metric-section">
                 <div class="metric-title">Last Hour</div>
                 <div class="metric-value" id="hour-count">0</div>
             </div>
             <div class="metric-section">
                 <div class="metric-title">Today</div>
-                <div class="metric-value" id="today-touches">0</div>
+                <div class="metric-value" id="today-count">0</div>
+            </div>
+            <div class="metric-section">
+                <div class="metric-title">Total Touches</div>
+                <div class="metric-value" id="total-count">0</div>
             </div>
         </div>
-        <div id="status">Loading...</div>
-        <div id="connection-status">Connecting...</div>
+        <!-- Removed status and connection-status divs -->
     </div>
 
     <script src="/static/script.js"></script>
