@@ -2,6 +2,7 @@ import time
 from collections import deque
 from src.hardware.mpr121 import MPR121TouchSensor
 
+
 class TouchTracker:
     """Tracks touch events from the MPR121 sensor and stores timestamps."""
 
@@ -18,7 +19,7 @@ class TouchTracker:
         except Exception as e:
             print(f"Error initializing MPR121 sensor: {e}")
             # Consider adding fallback or error handling if sensor init fails
-            self.sensor = None # Indicate sensor is not available
+            self.sensor = None  # Indicate sensor is not available
 
         self.history_duration = history_duration_sec
         # Use a deque for efficient addition and removal from both ends
@@ -29,13 +30,13 @@ class TouchTracker:
         """Reads the sensor and records timestamps for new touch events."""
         if not self.sensor:
             # print("Sensor not available, skipping update.")
-            return # Do nothing if sensor failed to initialize
+            return  # Do nothing if sensor failed to initialize
 
         try:
             current_status = self.sensor.read_touch_status()
         except Exception as e:
             print(f"Error reading touch status: {e}")
-            return # Skip update if reading fails
+            return  # Skip update if reading fails
 
         current_time = time.time()
 
@@ -43,7 +44,9 @@ class TouchTracker:
             # Detect a rising edge (touch start)
             if current_status[i] and not self._last_touch_status[i]:
                 self.touch_timestamps.append(current_time)
-                print(f"Touch detected on electrode {i} at {current_time}") # Optional: for debugging
+                print(
+                    f"Touch detected on electrode {i} at {current_time}"
+                )  # Optional: for debugging
 
         self._last_touch_status = current_status
 
@@ -52,7 +55,9 @@ class TouchTracker:
 
     def _prune_history(self, current_time):
         """Removes timestamps older than the history duration."""
-        while self.touch_timestamps and (current_time - self.touch_timestamps[0] > self.history_duration):
+        while self.touch_timestamps and (
+            current_time - self.touch_timestamps[0] > self.history_duration
+        ):
             self.touch_timestamps.popleft()
 
     def get_touch_count_last_hour(self):
@@ -62,8 +67,9 @@ class TouchTracker:
         self._prune_history(current_time)
         return len(self.touch_timestamps)
 
+
 # Example Usage (for testing)
-if __name__ == '__main__':
+if __name__ == "__main__":
     tracker = TouchTracker()
     print("Touch Tracker initialized. Press Ctrl+C to exit.")
 
@@ -72,7 +78,7 @@ if __name__ == '__main__':
             tracker.update()
             count = tracker.get_touch_count_last_hour()
             print(f"Touches in the last hour: {count}")
-            time.sleep(0.1) # Check sensor periodically
+            time.sleep(0.1)  # Check sensor periodically
     except KeyboardInterrupt:
         print("\nExiting.")
     except Exception as e:

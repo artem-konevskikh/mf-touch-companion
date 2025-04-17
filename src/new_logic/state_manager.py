@@ -1,11 +1,12 @@
 import time
 from src.hardware.led_strip import LedStrip
 
+
 class StateManager:
     """Manages the sad/glad state based on touch counts and controls the LED strip."""
 
     SAD_COLOR = (0, 0, 255)  # Blue
-    GLAD_COLOR = (255, 0, 0) # Yellow
+    GLAD_COLOR = (255, 0, 0)  # Yellow
     TRANSITION_STEPS = 50
 
     def __init__(self, led_strip: LedStrip, touch_threshold=5):
@@ -17,7 +18,7 @@ class StateManager:
         """
         self.led_strip = led_strip
         self.touch_threshold = touch_threshold
-        self.is_glad = False # Start in the sad state
+        self.is_glad = False  # Start in the sad state
         self._initialize_leds()
 
     def _initialize_leds(self):
@@ -35,19 +36,24 @@ class StateManager:
         should_be_glad = touch_count_last_hour >= self.touch_threshold
 
         if should_be_glad and not self.is_glad:
-            print(f"Touch threshold ({self.touch_threshold}) reached. Changing to GLAD state.")
+            print(
+                f"Touch threshold ({self.touch_threshold}) reached. Changing to GLAD state."
+            )
             self.led_strip.change_color(self.GLAD_COLOR, steps=self.TRANSITION_STEPS)
             self.is_glad = True
         elif not should_be_glad and self.is_glad:
-            print(f"Touch count ({touch_count_last_hour}) below threshold. Changing back to SAD state.")
+            print(
+                f"Touch count ({touch_count_last_hour}) below threshold. Changing back to SAD state."
+            )
             self.led_strip.change_color(self.SAD_COLOR, steps=self.TRANSITION_STEPS)
             self.is_glad = False
         # else: # Debugging
-            # state = "GLAD" if self.is_glad else "SAD"
-            # print(f"State remains {state}.")
+        # state = "GLAD" if self.is_glad else "SAD"
+        # print(f"State remains {state}.")
+
 
 # Example Usage (requires LedStrip instance)
-if __name__ == '__main__':
+if __name__ == "__main__":
     # This is a placeholder for testing; requires actual hardware setup
     print("StateManager example - requires hardware setup.")
     # try:
