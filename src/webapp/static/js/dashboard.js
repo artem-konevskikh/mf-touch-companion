@@ -69,15 +69,15 @@ class DashboardController {
     // Update all metrics with new data
     updateMetrics(data) {
         const now = Date.now();
-        
+
         // Only update if at least 1 second has passed since last update
         if (now - this.lastUpdateTime < this.updateInterval) {
             return;
         }
-        
+
         // Update timestamp
         this.lastUpdateTime = now;
-        
+
         // Primary metrics
         document.getElementById('total-count').textContent = formatNumber(data.total_count);
         document.getElementById('hour-count').textContent = formatNumber(data.hour_count);
@@ -108,7 +108,7 @@ class DashboardController {
         // Determine the correct WebSocket URL based on the current page URL
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/api/ws/statistics`;
-        
+
         this.socket = new WebSocket(wsUrl);
 
         this.socket.onopen = () => {
@@ -116,14 +116,14 @@ class DashboardController {
             // Reset reconnection attempts on successful connection
             this.reconnectAttempts = 0;
             this.reconnectDelay = 5000; // Reset to initial delay
-            
+
             // Start ping-pong mechanism
             this.startPingPong();
         };
 
         this.socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            
+
             // Check if this is a pong response
             if (data.type === 'pong') {
                 console.log('Received pong from server');
@@ -134,7 +134,7 @@ class DashboardController {
                 }
                 return;
             }
-            
+
             if (data.success) {
                 this.updateMetrics(data.data);
             } else {
@@ -146,23 +146,23 @@ class DashboardController {
             // Check if the close was clean (normal closure)
             const wasClean = event.wasClean;
             console.log(`WebSocket connection closed ${wasClean ? 'cleanly' : 'unexpectedly'}. Code: ${event.code}`);
-            
+
             // If we've reached max attempts, switch to SSE
             if (this.reconnectAttempts >= this.maxReconnectAttempts) {
                 console.log('Maximum WebSocket reconnection attempts reached. Switching to SSE.');
                 this.connectEventSource();
                 return;
             }
-            
+
             // Increase reconnection attempts
             this.reconnectAttempts++;
-            
+
             // Apply exponential backoff for reconnection delay
             if (!wasClean) {
                 this.reconnectDelay = Math.min(30000, this.reconnectDelay * this.reconnectBackoffMultiplier);
             }
-            
-            console.log(`Reconnecting in ${this.reconnectDelay/1000} seconds... (Attempt ${this.reconnectAttempts})`);
+
+            console.log(`Reconnecting in ${this.reconnectDelay / 1000} seconds... (Attempt ${this.reconnectAttempts})`);
             setTimeout(() => this.connectWebSocket(), this.reconnectDelay);
         };
 
@@ -176,11 +176,11 @@ class DashboardController {
     // Fallback to SSE if WebSockets are not supported
     connectEventSource() {
         console.log('Falling back to SSE connection');
-        
+
         if (this.evtSource) {
             this.evtSource.close();
         }
-        
+
         this.evtSource = new EventSource('/api/events/statistics');
 
         this.evtSource.onmessage = (event) => {
@@ -193,12 +193,12 @@ class DashboardController {
         };
 
         this.evtSource.onerror = () => {
-            console.error(`EventSource failed. Reconnecting in ${this.reconnectDelay/1000} seconds...`);
+            console.error(`EventSource failed. Reconnecting in ${this.reconnectDelay / 1000} seconds...`);
             this.evtSource.close();
-            
+
             // Apply exponential backoff for reconnection delay
             this.reconnectDelay = Math.min(30000, this.reconnectDelay * this.reconnectBackoffMultiplier);
-            
+
             setTimeout(() => this.connectEventSource(), this.reconnectDelay);
         };
     }
@@ -213,7 +213,7 @@ class DashboardController {
                 // For initial load, force update regardless of time
                 this.lastUpdateTime = 0;
                 this.updateMetrics(result.data);
-                
+
                 // Try to connect using WebSockets first
                 if ('WebSocket' in window) {
                     this.connectWebSocket();
@@ -242,12 +242,12 @@ class DashboardController {
             this.pongTimeoutId = null;
         }
     }
-    
+
     // Start ping-pong mechanism to detect connection issues
     startPingPong() {
         // Clear any existing timers
         this.clearPingPongTimers();
-        
+
         // Set up ping interval
         this.pingTimeoutId = setInterval(() => {
             if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -255,7 +255,7 @@ class DashboardController {
                 console.log('Sending ping to server');
                 try {
                     this.socket.send(JSON.stringify({ type: 'ping' }));
-                    
+
                     // Set up pong timeout - if we don't get a response in time, consider the connection dead
                     this.pongTimeoutId = setTimeout(() => {
                         console.error('Pong timeout - no response from server');

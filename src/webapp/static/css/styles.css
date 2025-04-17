@@ -91,25 +91,15 @@ h1 {
 
 .metric-value {
   font-family: var(--mono-font);
-  font-size: 56px;
+  font-size: 80px;
   font-weight: 700;
   margin: 0;
 }
 
-.metric-value.medium {
-  font-size: 48px;
-}
-
-.metric-value.small {
-  font-size: 36px;
-}
-
 /* Special styling for total count and hour count */
 #total-count, #hour-count {
-  font-size: 80px;
+  font-size: 64px;
 }
-
-
 
 .pulse {
   animation: pulse 2s infinite;
@@ -145,24 +135,24 @@ h1 {
 }
 
 /* Responsive design */
-@media (max-width: 768px) {
+@media (max-width:768px) {
   .metrics-container {
     flex-direction: column;
     padding: 10px;
   }
-  
+
   .metric-section {
     padding: 15px 10px;
   }
-  
+
   #total-count, #hour-count {
-    font-size: 48px;
+    font-size: 56px;
   }
-  
+
   .metric-value.medium {
-    font-size: 32px;
+    font-size: 56px;
   }
-  
+
   .state-emoji {
     font-size: 42px;
   }
