@@ -43,7 +43,7 @@ class AppConfig(BaseModel):
         default=(0, 0, 255), description="RGB color for SAD state (Blue)"
     )
     glad_color: tuple[int, int, int] = Field(
-        default=(255, 255, 0), description="RGB color for GLAD state (Yellow)"
+        default=(255, 0, 0), description="RGB color for GLAD state (Red)"
     )
     transition_steps: int = Field(
         default=50, description="Number of steps for color transitions"
