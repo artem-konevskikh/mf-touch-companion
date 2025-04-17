@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse
 from pathlib import Path
 import json
 
-from .connection_manager import manager
+from src.new_logic.web.connection_manager import manager
 # We will need access to the tracker and state manager instances later
 # These will likely be passed in or accessed globally (depending on main_new.py structure)
 
