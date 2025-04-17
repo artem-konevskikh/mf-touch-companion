@@ -86,19 +86,7 @@ class DashboardController {
         document.getElementById('today-count').textContent = formatNumber(data.today_count);
         document.getElementById('avg-duration').textContent = data.avg_duration.toFixed(2) + ' сек';
 
-        // Emotional state
-        const stateEmoji = document.getElementById('state-emoji');
-        stateEmoji.textContent = data.emotional_state_emoji;
 
-        // Remove old classes
-        stateEmoji.classList.remove('sad', 'glad');
-
-        // Add new class based on state
-        if (data.emotional_state === 'glad') {
-            stateEmoji.classList.add('glad');
-        } else {
-            stateEmoji.classList.add('sad');
-        }
 
         // State times and last update removed from UI
         // These lines were removed as per requirements

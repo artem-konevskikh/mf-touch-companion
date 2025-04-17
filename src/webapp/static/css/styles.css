@@ -91,68 +91,25 @@ h1 {
 
 .metric-value {
   font-family: var(--mono-font);
-  font-size: 48px;
+  font-size: 56px;
   font-weight: 700;
   margin: 0;
 }
 
 .metric-value.medium {
-  font-size: 36px;
+  font-size: 48px;
 }
 
 .metric-value.small {
-  font-size: 28px;
+  font-size: 36px;
 }
 
 /* Special styling for total count and hour count */
 #total-count, #hour-count {
-  font-size: 64px;
-}
-
-.emotional-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  margin-top: 0;
-  padding: 20px 10px;
-  flex: 1;
+  font-size: 80px;
 }
 
 
-
-.state-emoji {
-  font-size: 48px;
-  line-height: 1;
-  margin: 10px 0;
-  transition: all 0.5s ease;
-}
-
-.state-info {
-  display: flex;
-  justify-content: space-around;
-  width: 100%;
-  margin-top: 10px;
-}
-
-.state-metric {
-  text-align: center;
-}
-
-.footer {
-  margin-top: 30px;
-  text-align: center;
-  font-size: 14px;
-  opacity: 0.6;
-}
-
-.sad {
-  color: var(--sad-color);
-}
-
-.glad {
-  color: var(--glad-color);
-}
 
 .pulse {
   animation: pulse 2s infinite;
