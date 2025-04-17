@@ -1,3 +1,4 @@
+import asyncio
 import time
 import random
 import math
@@ -11,8 +12,8 @@ class LedStrip:
         self.steps = 100  # Default steps for transitions
         self._shimmer_active = False
 
-    def change_color(self, color, steps=None):
-        """Fades LED strip from current color to new color
+    async def change_color(self, color, steps=None):
+        """Fades LED strip from current color to new color (asynchronously)
 
         Args:
             color (tuple): Target color (R, G, B)
@@ -36,7 +37,7 @@ class LedStrip:
                 )
                 self.neo.set_led_color(led, *transition_color)
             self.neo.update_strip()
-            time.sleep(0.01)
+            await asyncio.sleep(0.01)  # Use asyncio.sleep
 
         self.current_color = color
 
