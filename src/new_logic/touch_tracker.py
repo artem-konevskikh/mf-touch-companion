@@ -8,7 +8,8 @@ Tracks touch events from the MPR121 sensor and stores timestamps for historical 
 import logging
 import time
 from collections import deque
-from typing import Deque, List, Optional
+from datetime import date
+from typing import Deque, Dict, List, Optional
 
 from src.hardware.mpr121 import MPR121TouchSensor
 
@@ -37,6 +38,11 @@ class TouchTracker:
         self.touch_timestamps: Deque[float] = deque()
         self._last_touch_status: List[bool] = [False] * 12
 
+        # Track total touches and daily touches
+        self.total_touches: int = 0
+        self.daily_touches: Dict[date, int] = {}
+        self._current_date: date = date.today()
+
         try:
             self.sensor = MPR121TouchSensor(i2c_address, i2c_bus)
             logger.info(
@@ -58,12 +64,33 @@ class TouchTracker:
             return  # Skip update if reading fails
 
         current_time = time.time()
+        today = date.today()
 
+        # Check if date has changed - if so, update the current date
+        if today != self._current_date:
+            self._current_date = today
+
+        # Initialize today's count if not present
+        if today not in self.daily_touches:
+            self.daily_touches[today] = 0
+
+        touch_detected = False
         for i in range(12):
             # Detect a rising edge (touch start)
             if current_status[i] and not self._last_touch_status[i]:
                 self.touch_timestamps.append(current_time)
+
+                # Update touch counts
+                self.total_touches += 1
+                self.daily_touches[today] += 1
+
+                touch_detected = True
                 logger.debug(f"Touch detected on electrode {i}")
+
+        if touch_detected:
+            logger.debug(
+                f"Total touches: {self.total_touches}, Today: {self.daily_touches[today]}"
+            )
 
         self._last_touch_status = current_status
 
@@ -81,6 +108,16 @@ class TouchTracker:
         ):
             self.touch_timestamps.popleft()
 
+        # Also prune old daily counts (keep only the last 30 days)
+        today = date.today()
+        keys_to_remove = []
+        for day in self.daily_touches.keys():
+            if (today - day).days > 30:
+                keys_to_remove.append(day)
+
+        for day in keys_to_remove:
+            del self.daily_touches[day]
+
     def get_touch_count_last_hour(self) -> int:
         """Return the number of touches recorded within the history duration.
 
@@ -91,6 +128,23 @@ class TouchTracker:
         current_time = time.time()
         self._prune_history(current_time)
         return len(self.touch_timestamps)
+
+    def get_total_touches(self) -> int:
+        """Return the total number of touches recorded since startup.
+
+        Returns:
+            The total count of touch events
+        """
+        return self.total_touches
+
+    def get_today_touches(self) -> int:
+        """Return the number of touches recorded today.
+
+        Returns:
+            The count of touch events for the current day
+        """
+        today = date.today()
+        return self.daily_touches.get(today, 0)
 
 
 # Example Usage (for testing)

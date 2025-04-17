@@ -7,6 +7,7 @@ Contains the main application class that drives the Touch Companion system.
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict, Optional, Union
@@ -51,6 +52,9 @@ class TouchCompanionApp:
     def _setup_logging(self) -> None:
         """Configure application logging."""
         log_format = "%(asctime)s - %(levelname)s - %(message)s"
+
+        # Reset existing handlers to avoid duplicate logs
+        logger.handlers = []
 
         # Configure root logger
         root_logger = logging.getLogger()
@@ -176,6 +180,8 @@ class TouchCompanionApp:
                         "is_glad": self.manager.is_glad,
                         "touch_count_last_hour": touch_count,
                         "touch_threshold": self.manager.touch_threshold,
+                        "total_touches": self.tracker.get_total_touches(),
+                        "today_touches": self.tracker.get_today_touches(),
                     }
                     # 5. Broadcast stats via WebSocket
                     await broadcast_stats(stats)

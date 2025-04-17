@@ -7,11 +7,6 @@ that monitors touch sensors and controls LED strips based on interaction thresho
 """
 
 import logging
-import sys
-from pathlib import Path
-
-# Adjust path to import from parent directory's hardware module
-sys.path.append(str(Path(__file__).parent.parent.absolute()))
 
 from src.new_logic.config import AppConfig, parse_arguments
 from src.new_logic.app import TouchCompanionApp
@@ -25,6 +20,10 @@ def setup_basic_logging(config: AppConfig) -> None:
     """
     log_format = "%(asctime)s - %(levelname)s - %(message)s"
     log_level = getattr(logging, config.log_level.upper(), logging.INFO)
+
+    # Reset root logger to avoid duplicate logs
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
 
     # Configure only a console handler for simplicity
     logging.basicConfig(
