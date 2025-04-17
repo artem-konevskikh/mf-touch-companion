@@ -38,7 +38,7 @@ def main() -> None:
     config = parse_arguments()
 
     # Set up basic logging
-    setup_basic_logging(config)
+    # setup_basic_logging(config)
 
     # Initialize and run application
     app = TouchCompanionApp(config)

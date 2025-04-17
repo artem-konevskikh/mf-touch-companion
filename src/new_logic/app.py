@@ -7,7 +7,6 @@ Contains the main application class that drives the Touch Companion system.
 
 import asyncio
 import logging
-import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict, Optional, Union
