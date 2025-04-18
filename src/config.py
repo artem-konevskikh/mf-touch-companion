@@ -57,6 +57,22 @@ class AppConfig(BaseModel):
     log_level: str = Field(default="info", description="Logging level")
     log_file: Optional[str] = Field(default=None, description="Path to log file")
 
+    # Camera and API Config
+    camera_enabled: bool = Field(
+        default=True, description="Enable camera functionality"
+    )
+    camera_device: int = Field(default=0, description="Camera device index to use")
+    cam_interval: int = Field(
+        default=5, description="Minimum interval between camera captures in seconds"
+    )
+    ya_api_url: str = Field(
+        default="https://art.ycloud.eazify.net:8443/comp",
+        description="API endpoint URL for image processing",
+    )
+    response_display_time: int = Field(
+        default=120, description="Time to display API responses in seconds"
+    )
+
 
 def parse_arguments() -> AppConfig:
     """Parse command line arguments and create application configuration.

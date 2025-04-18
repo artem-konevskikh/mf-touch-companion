@@ -9,7 +9,7 @@ import logging
 import time
 from collections import deque
 from datetime import date  # Added datetime for state serialization
-from typing import Deque, Dict, List, Optional
+from typing import Deque, Dict, List, Optional, Callable, Awaitable
 
 from src.hardware.mpr121 import MPR121TouchSensor
 
@@ -43,6 +43,9 @@ class TouchTracker:
         self.daily_touches: Dict[date, int] = {}
         self._current_date: date = date.today()
 
+        # Callback for touch events, to be set by camera integration
+        self._touch_callback: Optional[Callable[[], Awaitable[None]]] = None
+
         try:
             self.sensor = MPR121TouchSensor(i2c_address, i2c_bus)
             logger.info(
@@ -52,7 +55,16 @@ class TouchTracker:
             logger.error(f"Error initializing MPR121 sensor: {e}", exc_info=True)
             # Sensor init failed, but we'll continue with self.sensor as None
 
-    def update(self) -> None:
+    def set_touch_callback(self, callback: Callable[[], Awaitable[None]]) -> None:
+        """Set a callback function to be called when a touch is detected.
+
+        Args:
+            callback: Async function to call when touch is detected
+        """
+        self._touch_callback = callback
+        logger.info("Touch callback set")
+
+    async def update(self) -> None:
         """Read the sensor and record timestamps for new touch events."""
         if not self.sensor:
             return  # Do nothing if sensor failed to initialize
@@ -91,6 +103,13 @@ class TouchTracker:
             logger.debug(
                 f"Total touches: {self.total_touches}, Today: {self.daily_touches[today]}"
             )
+
+            # Call touch callback if set
+            if self._touch_callback:
+                try:
+                    await self._touch_callback()
+                except Exception as e:
+                    logger.error(f"Error in touch callback: {e}", exc_info=True)
 
         self._last_touch_status = current_status
 
@@ -205,11 +224,16 @@ if __name__ == "__main__":
     tracker = TouchTracker()
 
     try:
-        while True:
-            tracker.update()
-            count = tracker.get_touch_count_last_hour()
-            logger.info(f"Touches in the last hour: {count}")
-            time.sleep(0.1)  # Check sensor periodically
+        import asyncio
+
+        async def main():
+            while True:
+                await tracker.update()
+                count = tracker.get_touch_count_last_hour()
+                logger.info(f"Touches in the last hour: {count}")
+                await asyncio.sleep(0.1)  # Check sensor periodically
+
+        asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Test terminated by user")
     except Exception as e:

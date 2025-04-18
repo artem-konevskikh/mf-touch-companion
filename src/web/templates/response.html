@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Текст от API</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Roboto+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #2c3e50;
+            /* Dark blue-gray */
+            --text-color: #ecf0f1;
+            /* Light gray */
+            --accent-color: #3498db;
+            /* Blue */
+            --mono-font: 'Roboto Mono', monospace;
+            --sans-font: 'Roboto', sans-serif;
+        }
+
+        body {
+            font-family: var(--sans-font);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            /* Adjust as needed */
+        }
+
+        .response-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .response-text {
+            font-family: var(--sans-font);
+            font-size: 42px;
+            /* Large text for visibility */
+            font-weight: 300;
+            line-height: 1.4;
+            max-width: 800px;
+            margin: 0;
+            padding: 0;
+            opacity: 0.9;
+            transition: opacity 0.5s ease;
+            text-align: center;
+        }
+
+        .response-text.hidden {
+            opacity: 0;
+        }
+
+        .nav-links {
+            margin-top: 40px;
+            font-size: 14px;
+        }
+
+        .nav-links a {
+            color: var(--accent-color);
+            text-decoration: none;
+            padding: 10px;
+        }
+
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* Empty state styles */
+        .empty-state {
+            opacity: 0.5;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="response-container">
+            <div id="response-text" class="response-text empty-state">
+                Ожидание ответа от API...
+            </div>
+        </div>
+        <div class="nav-links">
+            <a href="/">← На главную</a>
+        </div>
+    </div>
+
+    <script src="/static/response.js"></script>
+</body>
+
+</html>
