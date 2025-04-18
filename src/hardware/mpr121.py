@@ -41,10 +41,10 @@ class MPR121TouchSensor:
         # Configure touch and release thresholds for all electrodes
         for i in range(12):
             self.bus.write_byte_data(
-                self.i2c_address, self.TOUCH_THRESHOLD_REG + 2 * i, 12
+                self.i2c_address, self.TOUCH_THRESHOLD_REG + 2 * i, 12*2
             )  # Touch threshold
             self.bus.write_byte_data(
-                self.i2c_address, self.RELEASE_THRESHOLD_REG + 2 * i, 6
+                self.i2c_address, self.RELEASE_THRESHOLD_REG + 2 * i, 6*2
             )  # Release threshold
 
         # Configure the sensor with default settings
