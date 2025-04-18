@@ -16,12 +16,12 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from src.new_logic.config import AppConfig
+from src.config import AppConfig
 from src.hardware.led_strip import LedStrip
-from src.new_logic.touch_tracker import TouchTracker
-from src.new_logic.state_manager import StateManager
-from src.new_logic.web import routes as web_routes
-from src.new_logic.web.routes import broadcast_stats
+from src.touch_tracker import TouchTracker
+from src.state_manager import StateManager
+from src.web import routes as web_routes
+from src.web.routes import broadcast_stats
 
 # Configure logger
 logger = logging.getLogger("touch_companion")
