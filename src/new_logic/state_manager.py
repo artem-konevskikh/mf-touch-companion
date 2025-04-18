@@ -6,7 +6,7 @@ Manages the sad/glad state based on touch counts and controls the LED strip.
 """
 
 import asyncio
-from typing import Tuple
+from typing import Tuple, Dict
 import logging
 
 from src.hardware.led_strip import LedStrip
@@ -73,11 +73,38 @@ class StateManager:
             asyncio.create_task(self.led_strip.change_color(self.sad_color, steps=self.transition_steps))
             self.is_glad = False
 
+    def get_state(self) -> Dict:
+        """Return the current state of the manager for persistence."""
+        return {
+            "is_glad": self.is_glad,
+        }
+
+    def load_state(self, state_data: Dict) -> None:
+        """Load the manager state from a dictionary."""
+        try:
+            loaded_is_glad = state_data.get("is_glad", False) # Default to sad if not found
+            if loaded_is_glad != self.is_glad:
+                self.is_glad = loaded_is_glad
+                logger.info(f"StateManager state loaded: is_glad={self.is_glad}")
+
+                # Apply the correct color based on the loaded state
+                target_color = self.glad_color if self.is_glad else self.sad_color
+                logger.info(f"Applying loaded state color: {target_color}")
+                # Set color directly on load, transitions handled by update_state later
+                self.led_strip.neo.fill_strip(*target_color)
+                self.led_strip.neo.update_strip()
+                self.led_strip.current_color = target_color
+            else:
+                logger.info("Loaded state matches current state, no change needed.")
+
+        except Exception as e:
+            logger.error(f"Error loading StateManager state: {e}", exc_info=True)
+     
     def get_current_state(self) -> dict:
         """Return the current state information.
 
         Returns:
-            A dictionary containing the current state (is_glad, threshold)
+        A dictionary containing the current state (is_glad, threshold)
         """
         return {
             "is_glad": self.is_glad,

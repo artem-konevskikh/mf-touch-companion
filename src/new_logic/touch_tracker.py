@@ -8,7 +8,7 @@ Tracks touch events from the MPR121 sensor and stores timestamps for historical 
 import logging
 import time
 from collections import deque
-from datetime import date
+from datetime import date  # Added datetime for state serialization
 from typing import Deque, Dict, List, Optional
 
 from src.hardware.mpr121 import MPR121TouchSensor
@@ -145,6 +145,51 @@ class TouchTracker:
         """
         today = date.today()
         return self.daily_touches.get(today, 0)
+
+    def get_state(self) -> Dict:
+        """Return the current state of the tracker for persistence."""
+        # Convert date keys to ISO format strings for JSON serialization
+        serializable_daily_touches = {
+            day.isoformat(): count for day, count in self.daily_touches.items()
+        }
+        return {
+            "total_touches": self.total_touches,
+            "daily_touches": serializable_daily_touches,
+            "touch_timestamps": list(self.touch_timestamps),  # Convert deque to list
+            "_current_date": self._current_date.isoformat(),
+            "_last_touch_status": self._last_touch_status,
+        }
+
+    def load_state(self, state_data: Dict) -> None:
+        """Load the tracker state from a dictionary."""
+        try:
+            self.total_touches = state_data.get("total_touches", 0)
+
+            # Convert ISO format strings back to date objects
+            loaded_daily_touches = state_data.get("daily_touches", {})
+            self.daily_touches = {
+                date.fromisoformat(day_str): count
+                for day_str, count in loaded_daily_touches.items()
+            }
+
+            # Convert list back to deque
+            self.touch_timestamps = deque(state_data.get("touch_timestamps", []))
+
+            # Load current date and last touch status
+            current_date_str = state_data.get("_current_date")
+            if current_date_str:
+                self._current_date = date.fromisoformat(current_date_str)
+            else:
+                self._current_date = date.today()  # Default if not found
+
+            self._last_touch_status = state_data.get("_last_touch_status", [False] * 12)
+
+            # Prune history based on loaded timestamps and current time
+            self._prune_history(time.time())
+
+            logger.info("TouchTracker state loaded successfully.")
+        except Exception as e:
+            logger.error(f"Error loading TouchTracker state: {e}", exc_info=True)
 
 
 # Example Usage (for testing)

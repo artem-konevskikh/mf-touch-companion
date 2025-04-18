@@ -7,6 +7,7 @@ Contains the main application class that drives the Touch Companion system.
 
 import asyncio
 import logging
+import json # Added for state persistence
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict, Optional, Union
@@ -25,6 +26,8 @@ from src.new_logic.web.routes import broadcast_stats
 # Configure logger
 logger = logging.getLogger("touch_companion")
 
+# Define state file path (adjust as needed)
+STATE_FILE = Path(__file__).parent.parent / "data" / "app_state.json"
 
 class TouchCompanionApp:
     """Main application class for Touch Companion system."""
@@ -40,6 +43,7 @@ class TouchCompanionApp:
         self.tracker: Optional[TouchTracker] = None
         self.manager: Optional[StateManager] = None
         self.background_task_running = False
+        self._state_file_path = STATE_FILE # Store state file path
 
         # Setup logging configuration
         self._setup_logging()
@@ -98,6 +102,9 @@ class TouchCompanionApp:
         logger.info("Starting Touch Companion application")
         self.background_task_running = True
         try:
+            # Ensure data directory exists for state file
+            self._state_file_path.parent.mkdir(parents=True, exist_ok=True)
+
             # Initialize LED strip
             led_device_path = Path(self.config.led_device)
             if not led_device_path.exists():
@@ -137,6 +144,9 @@ class TouchCompanionApp:
                     "State manager initialization skipped (LEDs not available)"
                 )
 
+            # Load previous state if available
+            self._load_state()
+
             # Start the background task
             asyncio.create_task(self._sensor_monitor_task())
 
@@ -158,6 +168,8 @@ class TouchCompanionApp:
         if self.leds:
             self.leds.clear()  # Turn off LEDs on exit
             logger.info("LED strip cleared")
+        # Save state on shutdown (optional, saving in task is more frequent)
+        # self._save_state()
 
     async def _sensor_monitor_task(self) -> None:
         """Run the core sensor reading and state update logic in the background."""
@@ -185,6 +197,9 @@ class TouchCompanionApp:
                     # 5. Broadcast stats via WebSocket
                     await broadcast_stats(stats)
 
+                    # 6. Save current state
+                    self._save_state()
+
                 # Wait before next cycle
                 await asyncio.sleep(self.config.update_interval_sec)
             except Exception as e:
@@ -192,6 +207,58 @@ class TouchCompanionApp:
                 await asyncio.sleep(5)  # Wait before retrying after an error
 
         logger.info("Sensor monitoring task stopped")
+
+    def _save_state(self) -> None:
+        """Save the current application state to a file."""
+        if not self.tracker or not self.manager:
+            logger.debug("Tracker or manager not initialized, skipping state save.")
+            return
+
+        try:
+            state_data = {
+                "tracker": self.tracker.get_state(),
+                "manager": self.manager.get_state(),
+            }
+            with open(self._state_file_path, "w") as f:
+                json.dump(state_data, f, indent=4)
+            logger.debug(f"Application state saved to {self._state_file_path}")
+        except AttributeError as e:
+            logger.warning(f"Could not get state from components (might still be initializing): {e}")
+        except IOError as e:
+            logger.error(f"Failed to save application state to {self._state_file_path}: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error saving state: {e}", exc_info=True)
+
+    def _load_state(self) -> None:
+        """Load application state from a file if it exists."""
+        if not self._state_file_path.exists():
+            logger.info("No previous state file found, starting fresh.")
+            return
+
+        if not self.tracker or not self.manager:
+            logger.warning("Tracker or manager not ready for state loading.")
+            return
+
+        try:
+            with open(self._state_file_path, "r") as f:
+                state_data = json.load(f)
+
+            if "tracker" in state_data and self.tracker:
+                self.tracker.load_state(state_data["tracker"])
+                logger.info("Loaded state for TouchTracker")
+
+            if "manager" in state_data and self.manager:
+                self.manager.load_state(state_data["manager"])
+                logger.info("Loaded state for StateManager")
+
+            logger.info(f"Application state successfully loaded from {self._state_file_path}")
+
+        except (IOError, json.JSONDecodeError) as e:
+            logger.error(f"Failed to load application state from {self._state_file_path}: {e}")
+        except AttributeError as e:
+            logger.warning(f"Could not load state into components: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error loading state: {e}", exc_info=True)
 
     def run(self) -> None:
         """Run the FastAPI application using Uvicorn."""
