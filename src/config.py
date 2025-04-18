@@ -59,7 +59,7 @@ class AppConfig(BaseModel):
 
     # Camera and API Config
     camera_enabled: bool = Field(
-        default=True, description="Enable camera functionality"
+        default=False, description="Enable camera functionality"
     )
     camera_device: int = Field(default=0, description="Camera device index to use")
     cam_interval: int = Field(
