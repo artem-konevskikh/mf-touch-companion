@@ -6,8 +6,7 @@ pydantic==2.11.2
 Jinja2==3.1.6
 
 # Hardware interfaces
-smbus2>=0.5.0
-pi5neo>=1.0.5
-picamzero
+smbus2==0.5.0
+pi5neo==1.0.5
 
-aiohttp
+aiohttp==3.11.16
