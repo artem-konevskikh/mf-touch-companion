@@ -7,7 +7,7 @@ Requires=touch-companion.service
 Type=simple
 User=brother
 Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/pi/.Xauthority
+Environment=XAUTHORITY=/home/brother/.Xauthority
 ExecStartPre=/bin/sleep 60
 ExecStart=/usr/bin/chromium-browser --kiosk --incognito --noerrdialogs --disable-translate --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --disk-cache-dir=/dev/null http://localhost:8000
 Restart=on-failure
