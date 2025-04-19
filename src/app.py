@@ -151,7 +151,6 @@ class TouchCompanionApp:
             # Initialize Camera Manager if enabled
             if self.config.camera_enabled:
                 self.camera_manager = CameraManager(
-                    camera_device=self.config.camera_device,
                     api_url=self.config.ya_api_url,
                     min_interval_sec=self.config.cam_interval,
                     response_display_time=self.config.response_display_time,
@@ -192,10 +191,6 @@ class TouchCompanionApp:
         if self.leds:
             self.leds.clear()  # Turn off LEDs on exit
             logger.info("LED strip cleared")
-        # Release camera resources
-        if self.camera_manager:
-            self.camera_manager.release_camera()
-            logger.info("Camera resources released")
         # Save state on shutdown
         self._save_state()
 

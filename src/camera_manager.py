@@ -33,7 +33,6 @@ class CameraManager:
         """Initialize the camera manager.
 
         Args:
-            # camera_device: Camera device index <- Remove this
             api_url: API endpoint URL
             min_interval_sec: Minimum seconds between captures
             response_display_time: Time in seconds to display API responses
@@ -48,6 +47,13 @@ class CameraManager:
         ] = None
         self.compliments: List[str] = []
         self._load_compliments()
+        self.camera: Optional[Camera] = None
+        try:
+            self.camera = Camera()
+            logger.info("Camera initialized successfully.")
+        except Exception as e:
+            logger.error(f"Failed to initialize camera: {e}", exc_info=True)
+            self.camera = None
 
     def _load_compliments(self):
         """Load compliments from the JSON file."""
@@ -96,25 +102,22 @@ class CameraManager:
         return True
 
     async def _capture_and_process(self):
-        """Capture image using picamzero and send to API in background."""
-        cam = None  # Initialize cam to None
-        try:
-            cam = Camera()
+        """Capture image using the initialized picamzero camera and send to API."""
+        if not self.camera:
+            logger.error("Camera not available for capture.")
+            return
 
+        try:
             with tempfile.NamedTemporaryFile(suffix=".jpg", delete=True) as tmp_file:
-                cam.capture_file(tmp_file.name)
+                self.camera.capture_file(tmp_file.name)
                 tmp_file.seek(0)
                 binary_jpeg_data = tmp_file.read()
 
             logger.debug("Image captured, sending to API...")
-
             await self._send_to_api(binary_jpeg_data)
 
         except Exception as e:
-            logger.error(f"Error in camera capture: {e}", exc_info=True)
-        finally:
-            if cam:
-                cam.close()
+            logger.error(f"Error during image capture or processing: {e}", exc_info=True)
 
     async def _send_to_api(self, image_data: bytes):
         """Send image to API and process response."""
@@ -184,3 +187,9 @@ class CameraManager:
     def load_state(self, state_data: Dict[str, Any]):
         """Load state from a dictionary."""
         self.last_capture_time = float(state_data.get("last_capture_time", 0.0))
+
+
+    }
+  ]
+}
+```

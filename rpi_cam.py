@@ -29,5 +29,3 @@ res = requests.post("https://art.ycloud.eazify.net:8443/comp", binary_jpeg_data)
 # Print the response text
 print(res.json()["text"])
 
-# Close the camera
-cam.close()
