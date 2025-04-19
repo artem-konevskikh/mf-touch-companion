@@ -62,7 +62,7 @@ function updateResponse(data) {
     if (data.expired === true || !data.text || data.text.trim() === '') {
         // Handle expiration or empty text
         responseTextDiv.classList.add('empty-state');
-        responseTextDiv.innerHTML = 'Ожидание ответа от API...'; // Use innerHTML for consistency
+        responseTextDiv.innerHTML = '...'; // Use innerHTML for consistency
         responseTextDiv.style.fontSize = ''; // Reset font size
         return;
     }
