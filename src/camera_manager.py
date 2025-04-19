@@ -117,7 +117,9 @@ class CameraManager:
             await self._send_to_api(binary_jpeg_data)
 
         except Exception as e:
-            logger.error(f"Error during image capture or processing: {e}", exc_info=True)
+            logger.error(
+                f"Error during image capture or processing: {e}", exc_info=True
+            )
 
     async def _send_to_api(self, image_data: bytes):
         """Send image to API and process response."""
@@ -187,9 +189,3 @@ class CameraManager:
     def load_state(self, state_data: Dict[str, Any]):
         """Load state from a dictionary."""
         self.last_capture_time = float(state_data.get("last_capture_time", 0.0))
-
-
-    }
-  ]
-}
-```
