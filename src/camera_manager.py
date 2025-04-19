@@ -109,7 +109,7 @@ class CameraManager:
 
         try:
             with tempfile.NamedTemporaryFile(suffix=".jpg", delete=True) as tmp_file:
-                self.camera.capture_file(tmp_file.name)
+                self.camera.take_photo(tmp_file.name)
                 tmp_file.seek(0)
                 binary_jpeg_data = tmp_file.read()
 
