@@ -16,6 +16,7 @@ while cap.isOpened():
 
     # Convert the numpy array to bytes (binary JPEG data)
     binary_jpeg_data = encoded_image.tobytes()
+    print("captured")
 
     res = requests.post('https://art.ycloud.eazify.net:8443/comp',
                         binary_jpeg_data)

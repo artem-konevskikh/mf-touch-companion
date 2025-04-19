@@ -6,12 +6,16 @@ Handles camera capture and API interactions with minimal complexity.
 """
 
 import asyncio
-import cv2
 import logging
 import time
-from typing import Any, Awaitable, Callable, Dict, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional
+import tempfile
+import json
+import random
+from pathlib import Path
 
 import aiohttp
+from picamzero import Camera
 
 # Configure logger
 logger = logging.getLogger("touch_companion.camera_manager")
@@ -22,20 +26,18 @@ class CameraManager:
 
     def __init__(
         self,
-        camera_device: int = 0,
-        api_url: str = "https://art.ycloud.eazify.net:8443/comp",
+        api_url: str,
         min_interval_sec: int = 5,
         response_display_time: int = 120,
     ):
         """Initialize the camera manager.
 
         Args:
-            camera_device: Camera device index
+            # camera_device: Camera device index <- Remove this
             api_url: API endpoint URL
             min_interval_sec: Minimum seconds between captures
-            response_display_time: How long to display responses
+            response_display_time: Time in seconds to display API responses
         """
-        self.camera_device = camera_device
         self.api_url = api_url
         self.min_interval_sec = min_interval_sec
         self.response_display_time = response_display_time
@@ -44,6 +46,27 @@ class CameraManager:
         self._response_callback: Optional[
             Callable[[Dict[str, Any]], Awaitable[None]]
         ] = None
+        self.compliments: List[str] = []
+        self._load_compliments()
+
+    def _load_compliments(self):
+        """Load compliments from the JSON file."""
+        try:
+            compliments_path = Path(__file__).parent / "compliments.json"
+            if compliments_path.exists():
+                with open(compliments_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    self.compliments = data.get("compliments", [])
+                    if self.compliments:
+                        logger.info(f"Loaded {len(self.compliments)} compliments.")
+                    else:
+                        logger.warning(
+                            "Compliments file loaded but no compliments found."
+                        )
+            else:
+                logger.warning(f"Compliments file not found at {compliments_path}")
+        except (IOError, json.JSONDecodeError) as e:
+            logger.error(f"Error loading compliments: {e}", exc_info=True)
 
     def register_response_callback(
         self, callback: Callable[[Dict[str, Any]], Awaitable[None]]
@@ -54,7 +77,7 @@ class CameraManager:
             callback: Async function to call with response data
         """
         self._response_callback = callback
-        logger.info("Response callback registered")
+        logger.debug("Response callback registered")
 
     async def process_touch_event(self) -> bool:
         """Process a touch event and potentially capture an image.
@@ -64,58 +87,40 @@ class CameraManager:
         """
         current_time = time.time()
 
-        # Skip if not enough time has passed
         if current_time - self.last_capture_time < self.min_interval_sec:
             return False
 
-        # Update time first to prevent rapid calls
         self.last_capture_time = current_time
 
-        # Start capture and API call in background
         asyncio.create_task(self._capture_and_process())
         return True
 
     async def _capture_and_process(self):
-        """Capture image and send to API in background."""
+        """Capture image using picamzero and send to API in background."""
+        cam = None  # Initialize cam to None
         try:
-            # Open camera (and close it when done)
-            camera = cv2.VideoCapture(self.camera_device)
-            if not camera.isOpened():
-                logger.error(f"Failed to open camera device {self.camera_device}")
-                return
+            cam = Camera()
 
-            try:
-                # Capture frame
-                ret, frame = camera.read()
-                if not ret or frame is None:
-                    logger.error("Failed to capture image")
-                    return
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=True) as tmp_file:
+                cam.capture_file(tmp_file.name)
+                tmp_file.seek(0)
+                binary_jpeg_data = tmp_file.read()
 
-                logger.info("Image captured, sending to API...")
+            logger.debug("Image captured, sending to API...")
 
-                # Convert to JPEG
-                success, buffer = cv2.imencode(".jpg", frame)
-                if not success:
-                    logger.error("Failed to encode image")
-                    return
-
-                # Send to API
-                binary_jpeg = buffer.tobytes()
-                await self._send_to_api(binary_jpeg)
-
-            finally:
-                # Always release camera
-                camera.release()
+            await self._send_to_api(binary_jpeg_data)
 
         except Exception as e:
             logger.error(f"Error in camera capture: {e}", exc_info=True)
+        finally:
+            if cam:
+                cam.close()
 
     async def _send_to_api(self, image_data: bytes):
         """Send image to API and process response."""
         try:
-            # Use a short timeout to avoid hanging
             async with aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=30)
+                timeout=aiohttp.ClientTimeout(total=5)
             ) as session:
                 async with session.post(self.api_url, data=image_data) as response:
                     if response.status != 200:
@@ -124,22 +129,31 @@ class CameraManager:
                         )
                         return
 
-                    # Process response
                     response_data = await response.json()
                     logger.info(f"API response received: {response_data}")
 
-                    # Store response
                     self.latest_response = response_data
 
-                    # Notify callback
                     if self._response_callback:
                         await self._response_callback(response_data)
 
-                    # Schedule expiration
                     asyncio.create_task(self._expire_response())
 
-        except asyncio.TimeoutError:
-            logger.error("API request timed out")
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            logger.error(f"API request failed: {e}")
+            # Send a random compliment as fallback
+            if self.compliments and self._response_callback:
+                fallback_compliment = random.choice(self.compliments)
+                fallback_response = {"text": fallback_compliment, "fallback": True}
+                logger.info(f"Sending fallback compliment: {fallback_compliment}")
+                try:
+                    await self._response_callback(fallback_response)
+                    # We might still want to expire this fallback message
+                    asyncio.create_task(self._expire_fallback_response())
+                except Exception as cb_err:
+                    logger.error(
+                        f"Error in fallback response callback: {cb_err}", exc_info=True
+                    )
         except Exception as e:
             logger.error(f"Error in API request: {e}", exc_info=True)
 
@@ -147,20 +161,21 @@ class CameraManager:
         """Clear response after display time."""
         await asyncio.sleep(self.response_display_time)
 
-        # Clear and notify
         if self.latest_response:
             self.latest_response = None
 
-            # Notify about expiration
             if self._response_callback:
                 await self._response_callback({"text": "", "expired": True})
 
             logger.debug("Response expired")
 
-    def release_camera(self):
-        """Release camera resources (not used in this implementation)."""
-        # Camera is only opened when needed, no need to explicitly release
-        pass
+    async def _expire_fallback_response(self):
+        """Clear fallback response after display time."""
+        await asyncio.sleep(self.response_display_time)
+        if self._response_callback:
+            # Send an empty message to clear the display
+            await self._response_callback({"text": "", "expired": True})
+            logger.debug("Fallback response expired")
 
     def get_state(self) -> Dict[str, Any]:
         """Return the current state for persistence."""
