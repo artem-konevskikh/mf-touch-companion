@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
+User=brother
 WorkingDirectory=/home/brother/mf-touch-companion/
 ExecStart=/home/brother/mf-touch-companion/venv/bin/python -m src.main
 Restart=on-failure

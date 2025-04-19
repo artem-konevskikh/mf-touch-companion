@@ -5,7 +5,7 @@ Requires=touch-companion.service
 
 [Service]
 Type=simple
-User=pi
+User=brother
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/pi/.Xauthority
 ExecStartPre=/bin/sleep 60
