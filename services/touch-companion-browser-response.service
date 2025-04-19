@@ -1,0 +1,19 @@
+[Unit]
+Description=Response UI for Touch Sensor Companion Device
+After=touch-companion.service
+Requires=touch-companion.service
+
+[Service]
+Type=simple
+User=pi
+Environment=DISPLAY=:1
+Environment=XAUTHORITY=/home/pi/.Xauthority
+ExecStartPre=/bin/sleep 60
+ExecStart=/usr/bin/chromium-browser --kiosk --incognito --noerrdialogs --disable-translate --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --disk-cache-dir=/dev/null http://localhost:8000/response
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

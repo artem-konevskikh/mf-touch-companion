@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/home/pi/touch-companion
-ExecStart=/usr/bin/python3 -m src.main
+WorkingDirectory=/home/brother/mf-touch-companion/
+ExecStart=/home/brother/mf-touch-companion/venv/bin/python -m src.main
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal

@@ -1,5 +1,5 @@
 [Unit]
-Description=Browser for Touch Sensor Companion Device
+Description=Touch UI for Touch Sensor Companion Device
 After=touch-companion.service
 Requires=touch-companion.service
 
