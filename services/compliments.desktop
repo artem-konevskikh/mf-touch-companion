@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Compliments UI
+Comment=Chromium in kiosk mode for local dashboard
+Exec=/usr/bin/chromium-browser --user-data-dir=/home/brother/.config/chromium-screen0 --kiosk --incognito --noerrdialogs --disable-translate --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --disk-cache-dir=/dev/null http://localhost:8000/response
+Icon=chromium-browser
+Terminal=false
+Categories=Network;WebBrowser;
