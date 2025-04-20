@@ -1,6 +1,6 @@
 [Unit]
 Description=Response UI for Touch Sensor Companion Device
-After=touch-companion.service
+After=fix-displays.service
 Requires=touch-companion.service
 
 [Service]
@@ -8,8 +8,8 @@ Type=simple
 User=brother
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/brother/.Xauthority
-ExecStartPre=/bin/sleep 60
-ExecStart=/usr/bin/chromium-browser --window-position=0,0 --kiosk --incognito --noerrdialogs --disable-translate --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --disk-cache-dir=/dev/null http://localhost:8000/response
+ExecStartPre=/bin/sleep 20
+ExecStart=/usr/bin/chromium-browser --user-data-dir=/home/brother/.config/chromium-screen0 --window-position=0,0 --window-size=1280,720 --kiosk --incognito --noerrdialogs --disable-translate --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --disk-cache-dir=/dev/null http://localhost:8000/response
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
