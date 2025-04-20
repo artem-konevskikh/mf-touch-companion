@@ -9,7 +9,7 @@ User=brother
 Environment=DISPLAY=:0.1
 Environment=XAUTHORITY=/home/brother/.Xauthority
 ExecStartPre=/bin/sleep 60
-ExecStart=/usr/bin/chromium-browser --kiosk --incognito --noerrdialogs --disable-translate --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --disk-cache-dir=/dev/null http://localhost:8000
+ExecStart=/usr/bin/chromium-browser --window-position=1280,0 --kiosk --incognito --noerrdialogs --disable-translate --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --disk-cache-dir=/dev/null http://localhost:8000
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
