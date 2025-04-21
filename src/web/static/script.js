@@ -37,32 +37,38 @@ function connectWebSocket() {
     };
 }
 
+function formatLargeNumber(number) {
+    if (number < 10000) return number.toString();
+    
+    if (number < 1000000) {
+        const thousands = number / 1000;
+        return `${Math.floor(thousands * 10) / 10} тыс`;
+    }
+    
+    const millions = number / 1000000;
+    return `${Math.floor(millions * 10) / 10} млн`;
+}
+
 function updateStatus(data) {
-    const isGlad = data.is_glad;
     const touchCount = data.touch_count_last_hour;
-    const threshold = data.touch_threshold;
     const totalTouches = data.total_touches;
     const todayTouches = data.today_touches;
 
-    
-    // Update the main status (glad/sad)
-    // Update metrics using the correct element variables
     if (typeof totalTouches !== 'undefined') {
-        totalCountDiv.textContent = totalTouches;
+        totalCountDiv.textContent = formatLargeNumber(totalTouches);
     } else {
         totalCountDiv.textContent = '0';
     }
     if (typeof touchCount !== 'undefined') {
-        hourCountDiv.textContent = touchCount;
+        hourCountDiv.textContent = formatLargeNumber(touchCount);
     } else {
         hourCountDiv.textContent = '0';
     }
     if (typeof todayTouches !== 'undefined') {
-        todayCountDiv.textContent = todayTouches;
+        todayCountDiv.textContent = formatLargeNumber(todayTouches);
     } else {
         todayCountDiv.textContent = '0';
     }
 }
 
-// Initial connection attempt
 connectWebSocket();
