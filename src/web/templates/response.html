@@ -18,6 +18,15 @@
             --sans-font: 'Roboto', sans-serif;
         }
 
+        /* Hide scrollbars while maintaining scroll functionality */
+        * {
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+        *::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
+        }
+
         body {
             font-family: var(--sans-font);
             background-color: var(--bg-color);
