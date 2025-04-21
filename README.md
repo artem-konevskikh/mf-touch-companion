@@ -61,13 +61,18 @@ cd touch-companion
 
 ```bash
 # Update package list
-sudo apt update
+sudo apt update && sudo apt upgrade
 
 # Install required system packages
 sudo apt install -y python3-pip python3-dev i2c-tools
+sudo apt install libcap-dev libatlas-base-dev ffmpeg libopenjp2-7
+sudo apt install libkms++-dev libfmt-dev libdrm-dev
+sudo apt install libcamera-dev
+sudo apt install -y python3-libcamera python3-kms++ python3-picamzero
 
-# Install required Python packages
-pip3 install fastapi uvicorn smbus2>=0.5.0 pi5neo>=1.0.5 pydantic typing_extensions
+pip install --upgrade pip
+pip install wheel
+pip install rpi-libcamera rpi-kms picamera2
 ```
 
 ### 3. Enable I2C interface
@@ -83,28 +88,60 @@ sudo raspi-config
 ```bash
 # Copy service files to systemd directory
 sudo cp services/touch-companion.service /etc/systemd/system/
-sudo cp services/touch-companion-browser.service /etc/systemd/system/
 
 # Reload systemd configuration
 sudo systemctl daemon-reload
 
 # Enable services to start at boot
 sudo systemctl enable touch-companion.service
-sudo systemctl enable touch-companion-browser.service
 ```
 
-### 5. Configure hardware
+### 5. Adding Desktop Icons
 
-Connect the MPR121 touch sensor to the Raspberry Pi's I2C pins:
-- VCC to 3.3V
-- GND to Ground
-- SCL to SCL (GPIO 3)
-- SDA to SDA (GPIO 2)
+```bash
+chmod 755 services/*.desktop
+cp services/*.desktop ~/Desktop
+```
 
-Connect the RGB LED strip:
-- Follow the pi5neo library guidelines for connecting your specific LED strip
+### 6. Configure hardware
 
-### 6. Start the services
+1. create `~/.config/wayfire.ini`:
+```
+[output:HDMI-A-2]
+mode = 1440x600
+```
+
+2. add to `/boot/firmware/cmdline.txt`:
+
+```
+spidev.bufsiz=32768 video=HDMI-A-2:440x1920M@60,rotate=90,reflect_x 
+```
+spidev for long led strips, video for long screen
+
+3. add to `/boot/firmware/config.txt` to configure screens:
+
+```
+disable_overscan=1
+max_usb_current=1
+hdmi_force_hotplug=1
+
+# Screen 0 settings (HDMI0)
+#hdmi_force_hotplug:0=1
+config_hdmi_boost:0=10
+hdmi_group:0=2
+hdmi_mode:0=87
+hdmi_cvt:0=1280 720 60 6 0 0 0
+
+# Screen 1 settings (HDMI1)
+hdmi_force_hotplug:1=1
+config_hdmi_boost:1=10
+hdmi_group:1=2
+hdmi_mode:1=87
+hdmi_cvt:1=144 1920 60
+display_rotate:1=3  # 1=90 degrees, 2=180 degrees, 3=270 degrees
+```
+
+### 7. Start the services
 
 ```bash
 # Start the main service
@@ -171,9 +208,6 @@ Check the service status:
 ```bash
 # Check main service status
 sudo systemctl status touch-companion.service
-
-# Check browser service status
-sudo systemctl status touch-companion-browser.service
 ```
 
 View logs:
@@ -181,9 +215,6 @@ View logs:
 ```bash
 # View main service logs
 sudo journalctl -u touch-companion.service
-
-# View browser service logs
-sudo journalctl -u touch-companion-browser.service
 ```
 
 ### I2C Issues
