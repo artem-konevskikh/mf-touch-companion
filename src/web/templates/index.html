@@ -20,62 +20,62 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 20px;
+            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            height: 440px;
+            width: 1920px;
             text-align: center;
+            overflow: hidden;
         }
 
         .container {
             width: 100%;
-            max-width: 900px; /* Adjust as needed */
-        }
-
-        h1 {
-            /* Removed h1 as it's not in the target image */
-            display: none;
+            max-width: 1920px;
+            height: 440px;
+            padding: 0 40px;
         }
 
         .metrics-container {
             display: flex;
-            justify-content: space-between; /* Distribute space */
+            justify-content: space-between;
             align-items: center;
-            flex-wrap: nowrap; /* Allow wrapping on smaller screens */
-            gap: 20px; /* Space between sections */
-            padding: 20px 0;
+            flex-wrap: nowrap;
+            gap: 40px;
+            height: 100%;
         }
 
         .metric-section {
             display: flex;
-            flex-direction: column; /* Title above value */
+            flex-direction: column;
             align-items: center;
             padding: 20px 0;
-            min-width: 150px; /* Minimum width for each section */
+            flex: 1;
+        }
+
+        .metric-section:nth-child(2) {
+            flex: 2;
         }
 
         .metric-title {
             font-family: var(--sans-font);
-            font-size: 55px; /* Smaller title */
+            font-size: 70px;
             font-weight: 300;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 10px; /* Increased space */
+            margin-bottom: 10px;
             opacity: 0.7;
             text-wrap: nowrap;
         }
 
         .metric-value {
             font-family: var(--mono-font);
-            font-size: 120px; /* Large value */
+            font-size: 120px;
             font-weight: 700;
             margin: 0;
-            line-height: 1; /* Adjust line height */
+            line-height: 1;
         }
-
-        /* Specific styles if needed, e.g., smaller font for some values */
-        /* #total-count, #hour-count { font-size: 64px; } */
 
     </style>
 </head>
