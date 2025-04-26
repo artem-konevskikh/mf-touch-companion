@@ -121,6 +121,24 @@ class CameraManager:
                 f"Error during image capture or processing: {e}", exc_info=True
             )
 
+    async def _send_fallback_compliment(self, error_context: str = ""):
+        """Send a fallback compliment when API request fails.
+
+        Args:
+            error_context: Context about the error for logging
+        """
+        if not (self.compliments and self._response_callback):
+            return
+
+        try:
+            fallback_compliment = random.choice(self.compliments)
+            fallback_response = {"text": fallback_compliment, "fallback": True}
+            logger.info(f"Sending fallback compliment{error_context}: {fallback_compliment}")
+            await self._response_callback(fallback_response)
+            asyncio.create_task(self._expire_fallback_response())
+        except Exception as cb_err:
+            logger.error(f"Error in fallback response callback: {cb_err}", exc_info=True)
+
     async def _send_to_api(self, image_data: bytes):
         """Send image to API and process response."""
         try:
@@ -129,36 +147,21 @@ class CameraManager:
             ) as session:
                 async with session.post(self.api_url, data=image_data) as response:
                     if response.status != 200:
-                        logger.error(
-                            f"API request failed with status {response.status}"
-                        )
+                        logger.error(f"API request failed with status {response.status}")
+                        await self._send_fallback_compliment(" for non-200 status")
                         return
 
                     response_data = await response.json()
                     logger.info(f"API response received: {response_data}")
 
                     self.latest_response = response_data
-
                     if self._response_callback:
                         await self._response_callback(response_data)
-
                     asyncio.create_task(self._expire_response())
 
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
             logger.error(f"API request failed: {e}")
-            # Send a random compliment as fallback
-            if self.compliments and self._response_callback:
-                fallback_compliment = random.choice(self.compliments)
-                fallback_response = {"text": fallback_compliment, "fallback": True}
-                logger.info(f"Sending fallback compliment: {fallback_compliment}")
-                try:
-                    await self._response_callback(fallback_response)
-                    # We might still want to expire this fallback message
-                    asyncio.create_task(self._expire_fallback_response())
-                except Exception as cb_err:
-                    logger.error(
-                        f"Error in fallback response callback: {cb_err}", exc_info=True
-                    )
+            await self._send_fallback_compliment()
         except Exception as e:
             logger.error(f"Error in API request: {e}", exc_info=True)
 
